@@ -6,14 +6,10 @@ import 'dart:developer' as developer;
 /// structured log — swap the implementation here if the project later needs
 /// file/remote logging, without touching call sites.
 abstract final class AppLogger {
-  static void error(
-    String message, [
-    Object? error,
-    StackTrace? stackTrace,
-  ]) {
+  static void error(String message, [Object? error, StackTrace? stackTrace]) {
     developer.log(
       message,
-      name: 'business_management',
+      name: 'dapur_kelaris',
       level: 1000, // SEVERE
       error: error,
       stackTrace: stackTrace,

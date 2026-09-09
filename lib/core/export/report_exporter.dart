@@ -22,10 +22,7 @@ abstract final class ReportExporter {
       0,
     );
     for (var i = 0; i < table.rows.length; i++) {
-      sheet.insertRowIterables(
-        table.rows[i].map(_toCellValue).toList(),
-        i + 1,
-      );
+      sheet.insertRowIterables(table.rows[i].map(_toCellValue).toList(), i + 1);
     }
     return workbook.save() ?? const [];
   }
@@ -56,8 +53,6 @@ abstract final class ReportExporter {
       await file.writeAsBytes(toXlsx(table));
     }
 
-    await SharePlus.instance.share(
-      ShareParams(files: [XFile(file.path)]),
-    );
+    await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
   }
 }
