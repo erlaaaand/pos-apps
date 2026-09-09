@@ -47,21 +47,25 @@ final appRouter = GoRouter(
                 ),
                 GoRoute(
                   path: ':id',
-                  builder: (context, state) => PurchaseOrderDetailScreen(
-                    purchaseOrderId: int.parse(state.pathParameters['id']!),
-                  ),
+                  builder: (context, state) {
+                    final id = int.tryParse(state.pathParameters['id'] ?? '');
+                    if (id == null) return const PurchaseOrderListScreen();
+                    return PurchaseOrderDetailScreen(purchaseOrderId: id);
+                  },
                   routes: [
                     GoRoute(
                       path: 'orders/new',
-                      builder: (context, state) => OrderFormScreen(
-                        purchaseOrderId: int.parse(state.pathParameters['id']!),
-                      ),
+                      builder: (context, state) {
+                        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                        return OrderFormScreen(purchaseOrderId: id);
+                      },
                     ),
                     GoRoute(
                       path: 'production',
-                      builder: (context, state) => ProductionScreen(
-                        purchaseOrderId: int.parse(state.pathParameters['id']!),
-                      ),
+                      builder: (context, state) {
+                        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                        return ProductionScreen(purchaseOrderId: id);
+                      },
                     ),
                   ],
                 ),
@@ -81,9 +85,11 @@ final appRouter = GoRouter(
                 // yang dulu bisa gagal kalau rutenya dibuka lewat deep link.
                 GoRoute(
                   path: ':id',
-                  builder: (context, state) => IngredientDetailScreen(
-                    ingredientId: int.parse(state.pathParameters['id']!),
-                  ),
+                  builder: (context, state) {
+                    final id = int.tryParse(state.pathParameters['id'] ?? '');
+                    if (id == null) return const IngredientListScreen();
+                    return IngredientDetailScreen(ingredientId: id);
+                  },
                 ),
               ],
             ),
@@ -101,9 +107,11 @@ final appRouter = GoRouter(
                 ),
                 GoRoute(
                   path: ':id',
-                  builder: (context, state) => ProductDetailScreen(
-                    productId: int.parse(state.pathParameters['id']!),
-                  ),
+                  builder: (context, state) {
+                    final id = int.tryParse(state.pathParameters['id'] ?? '');
+                    if (id == null) return const ProductListScreen();
+                    return ProductDetailScreen(productId: id);
+                  },
                   routes: [
                     GoRoute(
                       path: 'new-recipe',

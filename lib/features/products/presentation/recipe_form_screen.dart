@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../data/local/app_database.dart';
 import '../../ingredients/application/ingredient_providers.dart';
 import '../../ingredients/domain/ingredient_unit_label.dart';
+import '../../ingredients/presentation/widgets/ingredient_form_sheet.dart';
 import '../application/product_providers.dart';
 import '../domain/recipe_item_detail.dart';
 import '../domain/recipe_item_input.dart';
@@ -223,7 +224,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     FilledButton(
-                      onPressed: () => context.push('/ingredients/new'),
+                      onPressed: () => showIngredientFormSheet(context),
                       child: const Text('Tambah Bahan Baku'),
                     ),
                   ],
