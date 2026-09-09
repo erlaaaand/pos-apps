@@ -4,10 +4,11 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK and Create Release
+    name: Test, Build APK and Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -26,20 +27,33 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Run tests
+        run: flutter test
+
       - name: Build APK
         run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dapur-kelaris-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Create or Update Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "build/app/outputs/flutter-apk/app-release.apk"
-          tag: "latest"
-          name: "Latest Release"
-          body: "Automated release of the latest APK built from the main branch."
+          tag: "v1.0.0-latest"
+          name: "Dapur Kelaris - Latest Release"
+          body: |
+            Automated release from the `main` branch.
+            
+            - **Commit**: ${{ github.sha }}
           allowUpdates: true
           makeLatest: "true"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
