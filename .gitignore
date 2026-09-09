@@ -49,3 +49,8 @@ app.*.map.json
 
 # Claude / Agent state
 .claude/
+
+lib/base_project/
+lib/reference_theme/
+.kotlin/
+**/android/.kotlin/

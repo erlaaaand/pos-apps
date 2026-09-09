@@ -1,4 +1,4 @@
-package com.example.business_management
+package com.dapurkelaris.app
 
 import io.flutter.embedding.android.FlutterActivity
 

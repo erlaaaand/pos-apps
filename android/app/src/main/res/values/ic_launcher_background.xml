@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Amber, warna resmi Dapur Kelaris (lihat lib/base_project/logo.html). -->
+    <color name="ic_launcher_background">#E87800</color>
+    <!-- Warm Ivory, latar aplikasi. -->
+    <color name="launch_background">#FAF7F3</color>
+</resources>

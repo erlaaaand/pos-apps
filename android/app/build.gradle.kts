@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.business_management"
+    namespace = "com.dapurkelaris.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +15,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.business_management"
+        // Identitas instalasi Dapur Kelaris. Mengubah nilai ini membuat Android
+        // menganggapnya aplikasi lain: data lama tidak ikut terbawa.
+        applicationId = "com.dapurkelaris.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
