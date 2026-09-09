@@ -8,7 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../data/local/app_database.dart';
-import '../../ingredients/presentation/widgets/ingredient_unit_label.dart';
+import '../../ingredients/domain/ingredient_unit_label.dart';
 import '../application/product_providers.dart';
 import '../domain/recipe_item_detail.dart';
 import 'recipe_form_screen.dart';
@@ -63,6 +63,7 @@ class ProductDetailScreen extends ConsumerWidget {
         data: (product) {
           if (product == null) return null;
           return FloatingActionButton.extended(
+            heroTag: 'fab_product_detail',
             onPressed: () async {
               final recipe = await ref.read(
                 activeRecipeForProductProvider(productId).future,
@@ -109,14 +110,33 @@ class _ProductDetailBody extends ConsumerWidget {
             child: AsyncValueView(
               value: itemsAsync,
               data: (context, items) {
-                final hpp = items.fold<double>(0, (sum, item) => sum + item.lineCost);
+                final ingredientCost = _costOf(
+                  items,
+                  RecipeItemKind.ingredient,
+                );
+                final packagingCost = _costOf(items, RecipeItemKind.packaging);
+                final hpp = ingredientCost + packagingCost;
                 final margin = recipe.sellingPriceRupiah - hpp;
+                // Porsi kemasan terhadap HPP — alasan utama bahan dan kemasan
+                // dipisah di new_flow.md A.3.
+                final packagingShare = hpp > 0
+                    ? (packagingCost / hpp) * 100
+                    : 0.0;
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _StatRow(
                       label: 'Harga Jual',
                       value: RupiahFormatter.format(recipe.sellingPriceRupiah),
+                    ),
+                    _StatRow(
+                      label: 'Biaya bahan baku',
+                      value: RupiahFormatter.format(ingredientCost.round()),
+                    ),
+                    _StatRow(
+                      label: 'Biaya kemasan',
+                      value: RupiahFormatter.format(packagingCost.round()),
                     ),
                     _StatRow(
                       label: 'HPP (estimasi saat ini)',
@@ -127,6 +147,14 @@ class _ProductDetailBody extends ConsumerWidget {
                       value: RupiahFormatter.format(margin.round()),
                       emphasize: true,
                     ),
+                    if (packagingCost > 0) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Kemasan menyerap ${packagingShare.toStringAsFixed(1)}% '
+                        'dari HPP.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ],
                 );
               },
@@ -134,24 +162,24 @@ class _ProductDetailBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text('Bahan & Takaran', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: AppSpacing.sm),
         AsyncValueView(
           value: itemsAsync,
           data: (context, items) => Column(
-            children: items
-                .map(
-                  (item) => Card(
-                    child: ListTile(
-                      title: Text(item.ingredientName),
-                      subtitle: Text(
-                        '${_formatQuantity(item.quantityPerBatch)} ${item.unit.shortLabel}',
-                      ),
-                      trailing: Text(RupiahFormatter.format(item.lineCost.round())),
-                    ),
-                  ),
-                )
-                .toList(),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BomSection(
+                title: 'Bahan Baku & Takaran',
+                items: items
+                    .where((item) => item.kind == RecipeItemKind.ingredient)
+                    .toList(),
+              ),
+              _BomSection(
+                title: 'Kemasan',
+                items: items
+                    .where((item) => item.kind == RecipeItemKind.packaging)
+                    .toList(),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -159,7 +187,9 @@ class _ProductDetailBody extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Consumer(
           builder: (context, ref, _) {
-            final historyAsync = ref.watch(recipeHistoryProvider(recipe.productId));
+            final historyAsync = ref.watch(
+              recipeHistoryProvider(recipe.productId),
+            );
             return AsyncValueView(
               value: historyAsync,
               data: (context, history) => Column(
@@ -167,7 +197,9 @@ class _ProductDetailBody extends ConsumerWidget {
                     .map(
                       (version) => Card(
                         child: ListTile(
-                          title: Text(RupiahFormatter.format(version.sellingPriceRupiah)),
+                          title: Text(
+                            RupiahFormatter.format(version.sellingPriceRupiah),
+                          ),
                           subtitle: Text(dateFormat.format(version.createdAt)),
                           trailing: version.isActive
                               ? const Chip(label: Text('Aktif'))
@@ -183,16 +215,14 @@ class _ProductDetailBody extends ConsumerWidget {
       ],
     );
   }
-
-  String _formatQuantity(double quantity) {
-    return quantity == quantity.roundToDouble()
-        ? quantity.toStringAsFixed(0)
-        : quantity.toStringAsFixed(2);
-  }
 }
 
 class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value, this.emphasize = false});
+  const _StatRow({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
 
   final String label;
   final String value;
@@ -217,4 +247,50 @@ class _StatRow extends StatelessWidget {
       ),
     );
   }
+}
+
+double _costOf(List<RecipeItemDetail> items, RecipeItemKind kind) {
+  return items
+      .where((item) => item.kind == kind)
+      .fold<double>(0, (sum, item) => sum + item.lineCost);
+}
+
+/// Satu blok daftar BOM (bahan baku atau kemasan). Bagian yang kosong
+/// disembunyikan supaya resep tanpa kemasan tidak menampilkan blok kosong.
+class _BomSection extends StatelessWidget {
+  const _BomSection({required this.title, required this.items});
+
+  final String title;
+  final List<RecipeItemDetail> items;
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: AppSpacing.sm),
+        for (final item in items)
+          Card(
+            child: ListTile(
+              title: Text(item.ingredientName),
+              subtitle: Text(
+                '${_formatQuantity(item.quantityPerBatch)} '
+                '${item.unit.shortLabel}',
+              ),
+              trailing: Text(RupiahFormatter.format(item.lineCost.round())),
+            ),
+          ),
+        const SizedBox(height: AppSpacing.md),
+      ],
+    );
+  }
+}
+
+String _formatQuantity(double quantity) {
+  return quantity == quantity.roundToDouble()
+      ? quantity.toStringAsFixed(0)
+      : quantity.toStringAsFixed(2);
 }

@@ -14,22 +14,20 @@ class RecipeRepositoryImpl implements RecipeRepository {
 
   @override
   Stream<List<Product>> watchAllProducts() {
-    return (_db.select(_db.products)
-          ..orderBy([(t) => OrderingTerm(expression: t.name)]))
-        .watch();
+    return (_db.select(
+      _db.products,
+    )..orderBy([(t) => OrderingTerm(expression: t.name)])).watch();
   }
 
   @override
   Stream<List<ProductWithActiveRecipe>> watchProductsWithActiveRecipe() {
-    final query =
-        _db.select(_db.products).join([
-            innerJoin(
-              _db.recipes,
-              _db.recipes.productId.equalsExp(_db.products.id) &
-                  _db.recipes.isActive.equals(true),
-            ),
-          ])
-          ..orderBy([OrderingTerm(expression: _db.products.name)]);
+    final query = _db.select(_db.products).join([
+      innerJoin(
+        _db.recipes,
+        _db.recipes.productId.equalsExp(_db.products.id) &
+            _db.recipes.isActive.equals(true),
+      ),
+    ])..orderBy([OrderingTerm(expression: _db.products.name)]);
 
     return query.watch().map(
       (rows) => rows
@@ -59,17 +57,16 @@ class RecipeRepositoryImpl implements RecipeRepository {
 
   @override
   Future<void> setProductActive(int productId, {required bool isActive}) {
-    return (_db.update(
-      _db.products,
-    )..where((t) => t.id.equals(productId))).write(
-      ProductsCompanion(isActive: Value(isActive)),
-    );
+    return (_db.update(_db.products)..where((t) => t.id.equals(productId)))
+        .write(ProductsCompanion(isActive: Value(isActive)));
   }
 
   @override
   Stream<Recipe?> watchActiveRecipe(int productId) {
     return (_db.select(_db.recipes)
-          ..where((t) => t.productId.equals(productId) & t.isActive.equals(true))
+          ..where(
+            (t) => t.productId.equals(productId) & t.isActive.equals(true),
+          )
           ..limit(1))
         .watchSingleOrNull();
   }
@@ -79,10 +76,8 @@ class RecipeRepositoryImpl implements RecipeRepository {
     return (_db.select(_db.recipes)
           ..where((t) => t.productId.equals(productId))
           ..orderBy([
-            (t) => OrderingTerm(
-              expression: t.createdAt,
-              mode: OrderingMode.desc,
-            ),
+            (t) =>
+                OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
           ]))
         .watch();
   }
@@ -107,6 +102,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
           unit: ingredient.unit,
           quantityPerBatch: item.quantityPerBatch,
           currentCostPerUnit: ingredient.currentCostPerUnit,
+          kind: item.kind,
         );
       }).toList(),
     );
@@ -134,7 +130,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
   @override
   Future<int> createProduct({
     required String name,
-    required int sellingPriceRupiah,
+    int sellingPriceRupiah = 0,
     required List<RecipeItemInput> items,
   }) async {
     _assertValidRecipeInput(sellingPriceRupiah, items);
@@ -162,7 +158,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
   @override
   Future<int> addRecipeVersion({
     required int productId,
-    required int sellingPriceRupiah,
+    int sellingPriceRupiah = 0,
     required List<RecipeItemInput> items,
   }) async {
     _assertValidRecipeInput(sellingPriceRupiah, items);
@@ -202,6 +198,7 @@ class RecipeRepositoryImpl implements RecipeRepository {
               recipeId: recipeId,
               ingredientId: item.ingredientId,
               quantityPerBatch: item.quantityPerBatch,
+              kind: Value(item.kind),
             ),
           );
     }
@@ -211,11 +208,11 @@ class RecipeRepositoryImpl implements RecipeRepository {
     int sellingPriceRupiah,
     List<RecipeItemInput> items,
   ) {
-    if (sellingPriceRupiah <= 0) {
+    if (sellingPriceRupiah < 0) {
       throw ArgumentError.value(
         sellingPriceRupiah,
         'sellingPriceRupiah',
-        'Harga jual harus lebih dari 0',
+        'Harga jual tidak boleh negatif',
       );
     }
     if (items.isEmpty) {
@@ -224,9 +221,10 @@ class RecipeRepositoryImpl implements RecipeRepository {
   }
 
   Future<void> _assertProductNameAvailable(String name) async {
-    final existing = await (_db.select(
-      _db.products,
-    )..where((t) => t.name.lower().equals(name.toLowerCase()))).getSingleOrNull();
+    final existing =
+        await (_db.select(_db.products)
+              ..where((t) => t.name.lower().equals(name.toLowerCase())))
+            .getSingleOrNull();
     if (existing != null) {
       throw DuplicateProductNameException(name);
     }

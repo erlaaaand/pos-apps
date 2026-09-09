@@ -13,7 +13,9 @@ final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
 
 final productsWithActiveRecipeProvider =
     StreamProvider<List<ProductWithActiveRecipe>>((ref) {
-      return ref.watch(recipeRepositoryProvider).watchProductsWithActiveRecipe();
+      return ref
+          .watch(recipeRepositoryProvider)
+          .watchProductsWithActiveRecipe();
     });
 
 final productByIdProvider = StreamProvider.family<Product?, int>((ref, id) {
@@ -34,11 +36,12 @@ final recipeHistoryProvider = StreamProvider.family<List<Recipe>, int>((
   return ref.watch(recipeRepositoryProvider).watchRecipeHistory(productId);
 });
 
-final recipeItemsProvider = StreamProvider.family<List<RecipeItemDetail>, int>(
-  (ref, recipeId) {
-    return ref.watch(recipeRepositoryProvider).watchRecipeItems(recipeId);
-  },
-);
+final recipeItemsProvider = StreamProvider.family<List<RecipeItemDetail>, int>((
+  ref,
+  recipeId,
+) {
+  return ref.watch(recipeRepositoryProvider).watchRecipeItems(recipeId);
+});
 
 final recipeHppProvider = FutureProvider.family<double, int>((ref, recipeId) {
   return ref.watch(recipeRepositoryProvider).computeHpp(recipeId);

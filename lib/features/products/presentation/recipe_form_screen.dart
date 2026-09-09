@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,18 +6,19 @@ import '../../../core/error/app_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/local/app_database.dart';
 import '../../ingredients/application/ingredient_providers.dart';
+import '../../ingredients/domain/ingredient_unit_label.dart';
 import '../application/product_providers.dart';
 import '../domain/recipe_item_detail.dart';
 import '../domain/recipe_item_input.dart';
 import 'widgets/recipe_item_editor_row.dart';
 
-/// Arguments for [RecipeFormScreen] navigation. When [existingProduct] is
-/// null the form creates a new product + its first recipe; otherwise it adds
-/// a new recipe version for that product ("Tambah Resep Baru" per erp.md
-/// A.3 — same form either way), optionally pre-filled from the current
-/// recipe so the owner only edits what's changing.
+/// Parameter navigasi untuk [RecipeFormScreen].
 class RecipeFormArgs {
-  const RecipeFormArgs({this.existingProduct, this.prefillItems, this.prefillSellingPriceRupiah});
+  const RecipeFormArgs({
+    this.existingProduct,
+    this.prefillItems,
+    this.prefillSellingPriceRupiah,
+  });
 
   final Product? existingProduct;
   final List<RecipeItemDetail>? prefillItems;
@@ -37,7 +37,6 @@ class RecipeFormScreen extends ConsumerStatefulWidget {
 class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _priceController;
   final List<RecipeItemRowState> _rows = [];
   bool _isSubmitting = false;
   String? _submitError;
@@ -50,9 +49,6 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     _nameController = TextEditingController(
       text: widget.args.existingProduct?.name ?? '',
     );
-    _priceController = TextEditingController(
-      text: widget.args.prefillSellingPriceRupiah?.toString() ?? '',
-    );
 
     final prefill = widget.args.prefillItems;
     if (prefill != null && prefill.isNotEmpty) {
@@ -61,6 +57,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           RecipeItemRowState(
             ingredientId: item.ingredientId,
             initialQuantity: item.quantityPerBatch,
+            customUnit: item.unit,
+            kind: item.kind,
           ),
         );
       }
@@ -72,14 +70,17 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _priceController.dispose();
     for (final row in _rows) {
       row.dispose();
     }
     super.dispose();
   }
 
-  void _addRow() => setState(() => _rows.add(RecipeItemRowState()));
+  void _addRow(RecipeItemKind kind) =>
+      setState(() => _rows.add(RecipeItemRowState(kind: kind)));
+
+  List<RecipeItemRowState> _rowsOf(RecipeItemKind kind) =>
+      _rows.where((row) => row.kind == kind).toList();
 
   void _removeRow(RecipeItemRowState row) {
     setState(() {
@@ -91,13 +92,33 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final ingredientsList =
+        ref.read(ingredientListProvider).asData?.value ?? [];
+
     final items = <RecipeItemInput>[];
     for (final row in _rows) {
       final ingredientId = row.ingredientId;
       final quantity = double.tryParse(row.quantityController.text);
       if (ingredientId == null || quantity == null || quantity <= 0) continue;
+
+      final ingredient = ingredientsList.firstWhere(
+        (i) => i.id == ingredientId,
+      );
+      final fromUnit = row.customUnit ?? ingredient.unit;
+
+      // Konversi kuantitas kustom (misal g/sdt/sdm) ke kuantitas satuan dasar bahan
+      final baseQuantity = convertQuantityToBaseUnit(
+        quantity,
+        fromUnit,
+        ingredient.unit,
+      );
+
       items.add(
-        RecipeItemInput(ingredientId: ingredientId, quantityPerBatch: quantity),
+        RecipeItemInput(
+          ingredientId: ingredientId,
+          quantityPerBatch: baseQuantity,
+          kind: row.kind,
+        ),
       );
     }
 
@@ -112,18 +133,15 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     });
 
     final repository = ref.read(recipeRepositoryProvider);
-    final sellingPrice = int.parse(_priceController.text);
     try {
       if (_isNewProduct) {
         await repository.createProduct(
           name: _nameController.text.trim(),
-          sellingPriceRupiah: sellingPrice,
           items: items,
         );
       } else {
         await repository.addRecipeVersion(
           productId: widget.args.existingProduct!.id,
-          sellingPriceRupiah: sellingPrice,
           items: items,
         );
       }
@@ -181,7 +199,8 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Nama Produk'),
                     textCapitalization: TextCapitalization.words,
-                    validator: (value) => (value == null || value.trim().isEmpty)
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
                         ? 'Nama produk wajib diisi'
                         : null,
                   )
@@ -192,41 +211,59 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                     subtitle: Text(widget.args.existingProduct!.name),
                   ),
                 const SizedBox(height: AppSpacing.md),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Harga Jual (Rp)',
-                    prefixText: 'Rp ',
+
+                // Info Banner Perencanaan Takaran per Porsi
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondaryContainer
+                        .withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    final parsed = int.tryParse(value ?? '');
-                    if (parsed == null || parsed <= 0) {
-                      return 'Harga jual harus lebih dari 0';
-                    }
-                    return null;
-                  },
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Takaran resep diinput per 1 Porsi. Takaran ini digunakan oleh sistem '
+                          'untuk menghitung kebutuhan bahan dan perencanaan belanja (planning) berdasarkan stok yang tersedia.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'Bahan & Takaran per Batch',
-                  style: Theme.of(context).textTheme.titleMedium,
+
+                // Section Bahan Baku
+                _RecipeSection(
+                  title: 'Bahan Baku (Takaran per 1 Porsi)',
+                  emptyHint: 'Belum ada bahan baku pada resep ini.',
+                  addLabel: 'Tambah Bahan',
+                  rows: _rowsOf(RecipeItemKind.ingredient),
+                  ingredients: ingredients,
+                  onAdd: () => _addRow(RecipeItemKind.ingredient),
+                  onRemove: _removeRow,
+                  canRemove: _rows.length > 1,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                for (final row in _rows)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: RecipeItemEditorRow(
-                      row: row,
-                      ingredients: ingredients,
-                      onRemove: _rows.length > 1 ? () => _removeRow(row) : null,
-                    ),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: _addRow,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah Bahan'),
+                const SizedBox(height: AppSpacing.lg),
+
+                // Section Kemasan
+                _RecipeSection(
+                  title: 'Kemasan (Per 1 Porsi)',
+                  emptyHint:
+                      'Belum ada kemasan. Cup, sendok, dan sejenisnya bisa '
+                      'ditambahkan di sini.',
+                  addLabel: 'Tambah Kemasan',
+                  rows: _rowsOf(RecipeItemKind.packaging),
+                  ingredients: ingredients,
+                  onAdd: () => _addRow(RecipeItemKind.packaging),
+                  onRemove: _removeRow,
+                  canRemove: _rows.length > 1,
                 ),
                 if (_submitError != null) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -253,6 +290,65 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _RecipeSection extends StatelessWidget {
+  const _RecipeSection({
+    required this.title,
+    required this.emptyHint,
+    required this.addLabel,
+    required this.rows,
+    required this.ingredients,
+    required this.onAdd,
+    required this.onRemove,
+    required this.canRemove,
+  });
+
+  final String title;
+  final String emptyHint;
+  final String addLabel;
+  final List<RecipeItemRowState> rows;
+  final List<Ingredient> ingredients;
+  final VoidCallback onAdd;
+  final void Function(RecipeItemRowState row) onRemove;
+  final bool canRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (rows.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: Text(
+              emptyHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        for (final row in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: RecipeItemEditorRow(
+              row: row,
+              ingredients: ingredients,
+              onRemove: canRemove ? () => onRemove(row) : null,
+            ),
+          ),
+        OutlinedButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.add),
+          label: Text(addLabel),
+        ),
+      ],
     );
   }
 }

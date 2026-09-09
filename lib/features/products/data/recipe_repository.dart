@@ -32,7 +32,7 @@ abstract interface class RecipeRepository {
   /// Creates a product and its first recipe version atomically.
   Future<int> createProduct({
     required String name,
-    required int sellingPriceRupiah,
+    int sellingPriceRupiah = 0,
     required List<RecipeItemInput> items,
   });
 
@@ -41,7 +41,7 @@ abstract interface class RecipeRepository {
   /// per erp.md A.3).
   Future<int> addRecipeVersion({
     required int productId,
-    required int sellingPriceRupiah,
+    int sellingPriceRupiah = 0,
     required List<RecipeItemInput> items,
   });
 }

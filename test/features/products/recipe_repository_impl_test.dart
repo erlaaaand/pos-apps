@@ -1,8 +1,8 @@
-import 'package:business_management/data/local/app_database.dart';
-import 'package:business_management/features/ingredients/data/ingredient_repository_impl.dart';
-import 'package:business_management/features/products/data/recipe_repository_impl.dart';
-import 'package:business_management/features/products/domain/product_exceptions.dart';
-import 'package:business_management/features/products/domain/recipe_item_input.dart';
+import 'package:dapur_kelaris/data/local/app_database.dart';
+import 'package:dapur_kelaris/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:dapur_kelaris/features/products/data/recipe_repository_impl.dart';
+import 'package:dapur_kelaris/features/products/domain/product_exceptions.dart';
+import 'package:dapur_kelaris/features/products/domain/recipe_item_input.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,10 +23,7 @@ void main() {
     required String name,
     required double costPerUnit,
   }) async {
-    final id = await ingredients.create(
-      name: name,
-      unit: IngredientUnit.gram,
-    );
+    final id = await ingredients.create(name: name, unit: IngredientUnit.gram);
     // A single purchase of 1 unit at costPerUnit sets currentCostPerUnit
     // exactly, per the weighted-average formula on a zero starting stock.
     await ingredients.recordPurchase(
@@ -175,6 +172,87 @@ void main() {
         ),
         throwsA(isA<ProductNotFoundException>()),
       );
+    });
+  });
+
+  group('bahan baku vs kemasan (new_flow.md A.3)', () {
+    test('stores each BOM line under the kind it was entered as', () async {
+      final durianId = await seedIngredientWithCost(
+        name: 'Durian',
+        costPerUnit: 100,
+      );
+      final cupId = await seedIngredientWithCost(
+        name: 'Cup 22oz',
+        costPerUnit: 500,
+      );
+
+      final productId = await repository.createProduct(
+        name: 'Es Teler Durian',
+        sellingPriceRupiah: 15000,
+        items: [
+          RecipeItemInput(ingredientId: durianId, quantityPerBatch: 50),
+          RecipeItemInput(
+            ingredientId: cupId,
+            quantityPerBatch: 1,
+            kind: RecipeItemKind.packaging,
+          ),
+        ],
+      );
+
+      final recipe = await repository.watchActiveRecipe(productId).first;
+      final items = await repository.watchRecipeItems(recipe!.id).first;
+
+      final durianLine = items.firstWhere((i) => i.ingredientId == durianId);
+      final cupLine = items.firstWhere((i) => i.ingredientId == cupId);
+
+      expect(durianLine.kind, RecipeItemKind.ingredient);
+      expect(cupLine.kind, RecipeItemKind.packaging);
+    });
+
+    test('defaults a line to bahan baku when kind is not given', () async {
+      final durianId = await seedIngredientWithCost(
+        name: 'Durian',
+        costPerUnit: 100,
+      );
+
+      final productId = await repository.createProduct(
+        name: 'Ketan Talam',
+        sellingPriceRupiah: 12000,
+        items: [RecipeItemInput(ingredientId: durianId, quantityPerBatch: 30)],
+      );
+
+      final recipe = await repository.watchActiveRecipe(productId).first;
+      final items = await repository.watchRecipeItems(recipe!.id).first;
+
+      expect(items.single.kind, RecipeItemKind.ingredient);
+    });
+
+    test('counts packaging in HPP just like raw ingredients', () async {
+      final durianId = await seedIngredientWithCost(
+        name: 'Durian',
+        costPerUnit: 100,
+      );
+      final cupId = await seedIngredientWithCost(
+        name: 'Cup 22oz',
+        costPerUnit: 500,
+      );
+
+      final productId = await repository.createProduct(
+        name: 'Es Teler Durian',
+        sellingPriceRupiah: 15000,
+        items: [
+          RecipeItemInput(ingredientId: durianId, quantityPerBatch: 50),
+          RecipeItemInput(
+            ingredientId: cupId,
+            quantityPerBatch: 1,
+            kind: RecipeItemKind.packaging,
+          ),
+        ],
+      );
+
+      final recipe = await repository.watchActiveRecipe(productId).first;
+      // 50 x 100 (bahan) + 1 x 500 (kemasan)
+      expect(await repository.computeHpp(recipe!.id), 5500);
     });
   });
 }
