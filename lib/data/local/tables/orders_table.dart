@@ -18,8 +18,7 @@ enum OrderStatus { waiting, readyForPickup, completed, cancelled, wasted }
 class Orders extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  IntColumn get purchaseOrderId =>
-      integer().references(PurchaseOrders, #id)();
+  IntColumn get purchaseOrderId => integer().references(PurchaseOrders, #id)();
 
   IntColumn get productId => integer().references(Products, #id)();
 

@@ -16,8 +16,7 @@ class PurchaseOrders extends Table {
 
   TextColumn get label => text()();
 
-  IntColumn get status =>
-      intEnum<PoStatus>().withDefault(const Constant(0))();
+  IntColumn get status => intEnum<PoStatus>().withDefault(const Constant(0))();
 
   DateTimeColumn get openedAt => dateTime().nullable()();
 

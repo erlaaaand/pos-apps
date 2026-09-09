@@ -8,8 +8,7 @@ import 'purchase_orders_table.dart';
 class PoProductQuotas extends Table {
   IntColumn get id => integer().autoIncrement()();
 
-  IntColumn get purchaseOrderId =>
-      integer().references(PurchaseOrders, #id)();
+  IntColumn get purchaseOrderId => integer().references(PurchaseOrders, #id)();
 
   IntColumn get productId => integer().references(Products, #id)();
 
