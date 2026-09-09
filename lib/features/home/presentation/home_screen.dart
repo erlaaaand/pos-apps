@@ -269,13 +269,22 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final greetingText = _greeting(now.hour);
+    final iconData = _greetingIcon(now.hour);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.20),
+        color: theme.colorScheme.surfaceContainerLowest,
         borderRadius: AppRadius.lgRadius,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -287,18 +296,19 @@ class _HeroCard extends StatelessWidget {
                 _StatusPill(isDayClosed: isDayClosed),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  _greeting(now.hour),
+                  greetingText,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.calendar_today_outlined,
                       size: 14,
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
@@ -306,7 +316,7 @@ class _HeroCard extends StatelessWidget {
                         DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(now),
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -321,10 +331,11 @@ class _HeroCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              color: AppColors.primaryLight,
               borderRadius: AppRadius.lgRadius,
+              border: Border.all(color: AppColors.primaryContainer),
             ),
-            child: const Icon(Icons.restaurant, size: 26, color: Colors.white),
+            child: Icon(iconData, size: 24, color: AppColors.primary),
           ),
         ],
       ),
@@ -332,10 +343,27 @@ class _HeroCard extends StatelessWidget {
   }
 
   String _greeting(int hour) {
-    if (hour < 11) return 'Selamat Pagi!';
-    if (hour < 15) return 'Selamat Siang!';
-    if (hour < 18) return 'Selamat Sore!';
-    return 'Selamat Malam!';
+    if (hour >= 5 && hour < 11) {
+      return 'Selamat Pagi!';
+    } else if (hour >= 11 && hour < 15) {
+      return 'Selamat Siang!';
+    } else if (hour >= 15 && hour < 18) {
+      return 'Selamat Sore!';
+    } else {
+      return 'Selamat Malam!';
+    }
+  }
+
+  IconData _greetingIcon(int hour) {
+    if (hour >= 5 && hour < 11) {
+      return Icons.wb_sunny_rounded;
+    } else if (hour >= 11 && hour < 15) {
+      return Icons.wb_sunny_rounded;
+    } else if (hour >= 15 && hour < 18) {
+      return Icons.wb_twilight_rounded;
+    } else {
+      return Icons.nightlight_round;
+    }
   }
 }
 
@@ -348,14 +376,32 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isClosed = isDayClosed;
+
+    final bgColor = isClosed
+        ? AppColors.surfaceSubtle
+        : AppColors.successContainer;
+    final fgColor = isClosed
+        ? AppColors.textSecondary
+        : AppColors.success;
+    final dotColor = isClosed
+        ? AppColors.outline
+        : AppColors.success;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
         vertical: 3,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.22),
+        color: bgColor,
         borderRadius: AppRadius.pillRadius,
+        border: Border.all(
+          color: isClosed
+              ? theme.colorScheme.outlineVariant
+              : AppColors.success.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -365,17 +411,15 @@ class _StatusPill extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isDayClosed
-                  ? Colors.white.withValues(alpha: 0.7)
-                  : const Color(0xFF6EE7B7),
+              color: dotColor,
             ),
           ),
           const SizedBox(width: 6),
           Text(
-            isDayClosed ? 'Pesanan Hari Ini Ditutup' : 'Menerima Pesanan',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.95),
-              fontWeight: FontWeight.w600,
+            isClosed ? 'Pesanan Hari Ini Ditutup' : 'Menerima Pesanan',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: fgColor,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
