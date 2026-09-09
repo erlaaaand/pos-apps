@@ -7,9 +7,7 @@ import '../data/daily_closing_repository.dart';
 import '../data/daily_closing_repository_impl.dart';
 import '../domain/daily_summary.dart';
 
-final dailyClosingRepositoryProvider = Provider<DailyClosingRepository>((
-  ref,
-) {
+final dailyClosingRepositoryProvider = Provider<DailyClosingRepository>((ref) {
   return DailyClosingRepositoryImpl(
     ref.watch(appDatabaseProvider),
     ref.watch(backupRepositoryProvider),

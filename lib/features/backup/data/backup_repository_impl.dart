@@ -75,9 +75,7 @@ class BackupRepositoryImpl implements BackupRepository {
       for (final row in rows) {
         final columns = row.data.keys.join(', ');
         final values = row.data.values.map(_sqlLiteral).join(', ');
-        buffer.writeln(
-          'INSERT INTO "$tableName" ($columns) VALUES ($values);',
-        );
+        buffer.writeln('INSERT INTO "$tableName" ($columns) VALUES ($values);');
       }
     }
     return buffer.toString();

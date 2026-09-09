@@ -1,13 +1,13 @@
-import 'package:business_management/data/local/app_database.dart';
-import 'package:business_management/features/ingredients/data/ingredient_repository_impl.dart';
-import 'package:business_management/features/orders/data/order_repository_impl.dart';
-import 'package:business_management/features/production/data/production_repository_impl.dart';
-import 'package:business_management/features/production/domain/production_exceptions.dart';
-import 'package:business_management/features/production/domain/session_cost_input.dart';
-import 'package:business_management/features/products/data/recipe_repository_impl.dart';
-import 'package:business_management/features/products/domain/recipe_item_input.dart';
-import 'package:business_management/features/purchase_orders/data/purchase_order_repository_impl.dart';
-import 'package:business_management/features/purchase_orders/domain/po_quota_input.dart';
+import 'package:dapur_kelaris/data/local/app_database.dart';
+import 'package:dapur_kelaris/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:dapur_kelaris/features/orders/data/order_repository_impl.dart';
+import 'package:dapur_kelaris/features/production/data/production_repository_impl.dart';
+import 'package:dapur_kelaris/features/production/domain/production_exceptions.dart';
+import 'package:dapur_kelaris/features/production/domain/session_cost_input.dart';
+import 'package:dapur_kelaris/features/products/data/recipe_repository_impl.dart';
+import 'package:dapur_kelaris/features/products/domain/recipe_item_input.dart';
+import 'package:dapur_kelaris/features/purchase_orders/data/purchase_order_repository_impl.dart';
+import 'package:dapur_kelaris/features/purchase_orders/domain/po_quota_input.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 

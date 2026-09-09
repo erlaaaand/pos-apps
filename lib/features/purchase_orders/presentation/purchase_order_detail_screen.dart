@@ -6,6 +6,7 @@ import '../../../core/error/app_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/status_chip.dart';
 import '../../../data/local/app_database.dart';
 import '../../orders/application/order_providers.dart';
 import '../../orders/domain/order_detail.dart';
@@ -37,9 +38,9 @@ class PurchaseOrderDetailScreen extends ConsumerWidget {
         data: (po) => po == null || po.status != PoStatus.open
             ? null
             : FloatingActionButton.extended(
-                onPressed: () => context.push(
-                  '/purchase-orders/${po.id}/orders/new',
-                ),
+                heroTag: 'fab_po_detail',
+                onPressed: () =>
+                    context.push('/purchase-orders/${po.id}/orders/new'),
                 icon: const Icon(Icons.add),
                 label: const Text('Tambah Pesanan'),
               ),
@@ -64,9 +65,8 @@ class _PoDetailBody extends ConsumerWidget {
       }
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 
@@ -87,14 +87,13 @@ class _PoDetailBody extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(po.label, style: Theme.of(context).textTheme.titleLarge),
-                    Chip(
-                      label: Text(po.status.label),
-                      backgroundColor: po.status
-                          .color(context)
-                          .withValues(alpha: 0.15),
-                      labelStyle: TextStyle(color: po.status.color(context)),
-                      side: BorderSide.none,
+                    Text(
+                      po.label,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    StatusChip(
+                      label: po.status.label,
+                      color: po.status.color(context),
                     ),
                   ],
                 ),
@@ -113,9 +112,8 @@ class _PoDetailBody extends ConsumerWidget {
                   )
                 else if (po.status == PoStatus.closed)
                   FilledButton.icon(
-                    onPressed: () => context.push(
-                      '/purchase-orders/${po.id}/production',
-                    ),
+                    onPressed: () =>
+                        context.push('/purchase-orders/${po.id}/production'),
                     icon: const Icon(Icons.soup_kitchen_outlined),
                     label: const Text('Proses Produksi'),
                   ),
@@ -185,9 +183,8 @@ class _OrderTile extends ConsumerWidget {
         await ref.read(orderRepositoryProvider).complete(order.id);
       } catch (error) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
       }
     }
 
@@ -203,9 +200,8 @@ class _OrderTile extends ConsumerWidget {
             .cancel(order.id, reason: reason);
       } catch (error) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
       }
     }
 
@@ -216,20 +212,15 @@ class _OrderTile extends ConsumerWidget {
           [
             order.buyerContact,
             order.note,
-            if (order.status == OrderStatus.cancelled)
-              order.cancellationReason,
+            if (order.status == OrderStatus.cancelled) order.cancellationReason,
           ].whereType<String>().join(' · '),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Chip(
-              label: Text(order.status.label),
-              backgroundColor: order.status
-                  .color(context)
-                  .withValues(alpha: 0.15),
-              labelStyle: TextStyle(color: order.status.color(context)),
-              side: BorderSide.none,
+            StatusChip(
+              label: order.status.label,
+              color: order.status.color(context),
             ),
             if (order.status == OrderStatus.waiting)
               IconButton(
@@ -280,7 +271,9 @@ class _CancelReasonDialogState extends State<_CancelReasonDialog> {
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(
-            _controller.text.trim().isEmpty ? 'Dibatalkan manual' : _controller.text.trim(),
+            _controller.text.trim().isEmpty
+                ? 'Dibatalkan manual'
+                : _controller.text.trim(),
           ),
           child: const Text('Batalkan'),
         ),

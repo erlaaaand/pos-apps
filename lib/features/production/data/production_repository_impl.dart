@@ -39,7 +39,8 @@ class ProductionRepositoryImpl implements ProductionRepository {
       for (final item in bom) {
         final qty = item.quantityPerBatch * detail.order.quantity;
         need[item.ingredientId] = (need[item.ingredientId] ?? 0) + qty;
-        totalNeeded[item.ingredientId] = (totalNeeded[item.ingredientId] ?? 0) + qty;
+        totalNeeded[item.ingredientId] =
+            (totalNeeded[item.ingredientId] ?? 0) + qty;
       }
       needByOrderId[detail.order.id] = need;
     }
@@ -139,7 +140,8 @@ class ProductionRepositoryImpl implements ProductionRepository {
               )..where((t) => t.id.equals(item.ingredientId))).getSingle();
 
           final qty = item.quantityPerBatch * order.quantity;
-          totalUsed[item.ingredientId] = (totalUsed[item.ingredientId] ?? 0) + qty;
+          totalUsed[item.ingredientId] =
+              (totalUsed[item.ingredientId] ?? 0) + qty;
           orderHpp += qty * ingredient.currentCostPerUnit;
         }
         hppByOrderId[order.id] = orderHpp.round();
@@ -273,17 +275,18 @@ class ProductionRepositoryImpl implements ProductionRepository {
   }
 
   Future<List<OrderDetail>> _fetchWaitingOrders(int purchaseOrderId) async {
-    final query = _db.select(_db.orders).join([
-      innerJoin(
-        _db.products,
-        _db.products.id.equalsExp(_db.orders.productId),
-      ),
-    ])
-      ..where(
-        _db.orders.purchaseOrderId.equals(purchaseOrderId) &
-            _db.orders.status.equalsValue(OrderStatus.waiting),
-      )
-      ..orderBy([OrderingTerm(expression: _db.orders.orderedAt)]);
+    final query =
+        _db.select(_db.orders).join([
+            innerJoin(
+              _db.products,
+              _db.products.id.equalsExp(_db.orders.productId),
+            ),
+          ])
+          ..where(
+            _db.orders.purchaseOrderId.equals(purchaseOrderId) &
+                _db.orders.status.equalsValue(OrderStatus.waiting),
+          )
+          ..orderBy([OrderingTerm(expression: _db.orders.orderedAt)]);
 
     final rows = await query.get();
     return rows

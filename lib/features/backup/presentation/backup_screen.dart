@@ -24,7 +24,9 @@ class BackupScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).pop(BackupFormat.db),
             child: const ListTile(
               title: Text('Salinan .db (disarankan)'),
-              subtitle: Text('Format utama, paling reliable untuk restore penuh'),
+              subtitle: Text(
+                'Format utama, paling reliable untuk restore penuh',
+              ),
             ),
           ),
           SimpleDialogOption(
@@ -46,15 +48,14 @@ class BackupScreen extends ConsumerWidget {
           ? await repository.backupAsDb(trigger: BackupTrigger.manual)
           : await repository.backupAsSql(trigger: BackupTrigger.manual);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup berhasil dibuat.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Backup berhasil dibuat.')));
       await repository.shareBackup(log);
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 
@@ -118,9 +119,8 @@ class BackupScreen extends ConsumerWidget {
       );
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 
@@ -146,7 +146,10 @@ class BackupScreen extends ConsumerWidget {
             label: const Text('Pulihkan dari File'),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Riwayat Backup', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            'Riwayat Backup',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.sm),
           AsyncValueView(
             value: historyAsync,

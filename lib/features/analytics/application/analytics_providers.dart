@@ -34,7 +34,8 @@ final cancellationBottlenecksProvider =
       return ref.watch(analyticsRepositoryProvider).cancellationBottlenecks();
     });
 
-final ingredientPriceTrendProvider =
-    FutureProvider<List<IngredientPricePoint>>((ref) {
-      return ref.watch(analyticsRepositoryProvider).ingredientPriceTrend();
-    });
+final ingredientPriceTrendProvider = FutureProvider<List<IngredientPricePoint>>(
+  (ref) {
+    return ref.watch(analyticsRepositoryProvider).ingredientPriceTrend();
+  },
+);

@@ -60,10 +60,9 @@ class DailyClosingRepositoryImpl implements DailyClosingRepository {
     final today = dateOnly(DateTime.now());
     final tomorrow = today.add(const Duration(days: 1));
 
-    final todaysOrders =
-        await (_db.select(
-          _db.orders,
-        )..where((t) => t.orderedAt.isBetweenValues(today, tomorrow))).get();
+    final todaysOrders = await (_db.select(
+      _db.orders,
+    )..where((t) => t.orderedAt.isBetweenValues(today, tomorrow))).get();
 
     var revenue = 0;
     var hpp = 0;
@@ -103,19 +102,17 @@ class DailyClosingRepositoryImpl implements DailyClosingRepository {
     final today = dateOnly(DateTime.now());
     final tomorrow = today.add(const Duration(days: 1));
 
-    final alreadyClosed =
-        await (_db.select(
-          _db.dailyClosings,
-        )..where((t) => t.date.equals(today))).getSingleOrNull();
+    final alreadyClosed = await (_db.select(
+      _db.dailyClosings,
+    )..where((t) => t.date.equals(today))).getSingleOrNull();
     if (alreadyClosed != null) {
       throw const DayAlreadyClosedException();
     }
 
     final closing = await _db.transaction(() async {
-      final todaysOrders =
-          await (_db.select(_db.orders)
-                ..where((t) => t.orderedAt.isBetweenValues(today, tomorrow)))
-              .get();
+      final todaysOrders = await (_db.select(
+        _db.orders,
+      )..where((t) => t.orderedAt.isBetweenValues(today, tomorrow))).get();
 
       var revenue = 0;
       var hpp = 0;
@@ -126,11 +123,8 @@ class DailyClosingRepositoryImpl implements DailyClosingRepository {
           hpp += order.hppSnapshotRupiah ?? 0;
         } else if (order.status == OrderStatus.readyForPickup) {
           wasteCost += order.hppSnapshotRupiah ?? 0;
-          await (_db.update(
-            _db.orders,
-          )..where((t) => t.id.equals(order.id))).write(
-            const OrdersCompanion(status: Value(OrderStatus.wasted)),
-          );
+          await (_db.update(_db.orders)..where((t) => t.id.equals(order.id)))
+              .write(const OrdersCompanion(status: Value(OrderStatus.wasted)));
         }
       }
 
@@ -178,26 +172,23 @@ class DailyClosingRepositoryImpl implements DailyClosingRepository {
     DateTime today,
     DateTime tomorrow,
   ) async {
-    final operationalCosts =
-        await (_db.select(
-          _db.dailyOperationalCosts,
-        )..where((t) => t.date.isBetweenValues(today, tomorrow))).get();
+    final operationalCosts = await (_db.select(
+      _db.dailyOperationalCosts,
+    )..where((t) => t.date.isBetweenValues(today, tomorrow))).get();
     final operationalTotal = operationalCosts.fold<int>(
       0,
       (sum, cost) => sum + cost.amountRupiah,
     );
 
-    final sessionsToday =
-        await (_db.select(_db.productionSessions)
-              ..where((t) => t.confirmedAt.isBetweenValues(today, tomorrow)))
-            .get();
+    final sessionsToday = await (_db.select(
+      _db.productionSessions,
+    )..where((t) => t.confirmedAt.isBetweenValues(today, tomorrow))).get();
     if (sessionsToday.isEmpty) return operationalTotal;
 
     final sessionIds = sessionsToday.map((s) => s.id).toList();
-    final sessionCosts =
-        await (_db.select(
-          _db.productionSessionCosts,
-        )..where((t) => t.sessionId.isIn(sessionIds))).get();
+    final sessionCosts = await (_db.select(
+      _db.productionSessionCosts,
+    )..where((t) => t.sessionId.isIn(sessionIds))).get();
     final sessionCostTotal = sessionCosts.fold<int>(
       0,
       (sum, cost) => sum + cost.amountRupiah,

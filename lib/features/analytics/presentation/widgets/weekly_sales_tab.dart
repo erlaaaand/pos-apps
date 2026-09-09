@@ -66,7 +66,12 @@ class WeeklySalesTab extends ConsumerWidget {
 
   ReportTable _toTable(List<WeeklyProductSales> rows, DateFormat dateFormat) {
     return ReportTable(
-      headers: const ['Minggu Mulai', 'Produk', 'Qty Terjual', 'Pendapatan (Rp)'],
+      headers: const [
+        'Minggu Mulai',
+        'Produk',
+        'Qty Terjual',
+        'Pendapatan (Rp)',
+      ],
       rows: rows
           .map(
             (row) => [

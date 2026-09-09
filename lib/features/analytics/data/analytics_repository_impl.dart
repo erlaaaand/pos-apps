@@ -17,13 +17,8 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
   @override
   Future<List<WeeklyProductSales>> weeklySalesTrend() async {
     final rows = await (_db.select(_db.orders).join([
-          innerJoin(
-            _db.products,
-            _db.products.id.equalsExp(_db.orders.productId),
-          ),
-        ])
-          ..where(_db.orders.status.equalsValue(OrderStatus.completed)))
-        .get();
+      innerJoin(_db.products, _db.products.id.equalsExp(_db.orders.productId)),
+    ])..where(_db.orders.status.equalsValue(OrderStatus.completed))).get();
 
     final buckets = <(String, DateTime), (int, int)>{};
     for (final row in rows) {
@@ -37,37 +32,35 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
       );
     }
 
-    final result = buckets.entries
-        .map(
-          (entry) => WeeklyProductSales(
-            productName: entry.key.$1,
-            weekStart: entry.key.$2,
-            quantitySold: entry.value.$1,
-            revenueRupiah: entry.value.$2,
-          ),
-        )
-        .toList()
-      ..sort((a, b) {
-        final byWeek = b.weekStart.compareTo(a.weekStart);
-        return byWeek != 0 ? byWeek : a.productName.compareTo(b.productName);
-      });
+    final result =
+        buckets.entries
+            .map(
+              (entry) => WeeklyProductSales(
+                productName: entry.key.$1,
+                weekStart: entry.key.$2,
+                quantitySold: entry.value.$1,
+                revenueRupiah: entry.value.$2,
+              ),
+            )
+            .toList()
+          ..sort((a, b) {
+            final byWeek = b.weekStart.compareTo(a.weekStart);
+            return byWeek != 0
+                ? byWeek
+                : a.productName.compareTo(b.productName);
+          });
     return result;
   }
 
   @override
   Future<List<PoSlotPerformance>> poSlotPerformance() async {
     final rows = await (_db.select(_db.orders).join([
-          innerJoin(
-            _db.products,
-            _db.products.id.equalsExp(_db.orders.productId),
-          ),
-          innerJoin(
-            _db.purchaseOrders,
-            _db.purchaseOrders.id.equalsExp(_db.orders.purchaseOrderId),
-          ),
-        ])
-          ..where(_db.orders.status.equalsValue(OrderStatus.completed)))
-        .get();
+      innerJoin(_db.products, _db.products.id.equalsExp(_db.orders.productId)),
+      innerJoin(
+        _db.purchaseOrders,
+        _db.purchaseOrders.id.equalsExp(_db.orders.purchaseOrderId),
+      ),
+    ])..where(_db.orders.status.equalsValue(OrderStatus.completed))).get();
 
     final buckets = <(String, String), (int, int)>{};
     for (final row in rows) {
@@ -106,32 +99,33 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
     }
 
     return products.map((product) {
-      final productOrders = ordersByProduct[product.id] ?? const [];
-      var completedCount = 0;
-      var cancelledCount = 0;
-      var quantitySold = 0;
-      var revenue = 0;
-      var hpp = 0;
-      for (final order in productOrders) {
-        if (order.status == OrderStatus.completed) {
-          completedCount++;
-          quantitySold += order.quantity;
-          revenue += order.unitPriceRupiah * order.quantity;
-          hpp += order.hppSnapshotRupiah ?? 0;
-        } else if (order.status == OrderStatus.cancelled) {
-          cancelledCount++;
+        final productOrders = ordersByProduct[product.id] ?? const [];
+        var completedCount = 0;
+        var cancelledCount = 0;
+        var quantitySold = 0;
+        var revenue = 0;
+        var hpp = 0;
+        for (final order in productOrders) {
+          if (order.status == OrderStatus.completed) {
+            completedCount++;
+            quantitySold += order.quantity;
+            revenue += order.unitPriceRupiah * order.quantity;
+            hpp += order.hppSnapshotRupiah ?? 0;
+          } else if (order.status == OrderStatus.cancelled) {
+            cancelledCount++;
+          }
         }
-      }
-      return MenuPerformance(
-        productName: product.name,
-        isActive: product.isActive,
-        completedCount: completedCount,
-        cancelledCount: cancelledCount,
-        totalQuantitySold: quantitySold,
-        totalRevenueRupiah: revenue,
-        totalHppRupiah: hpp,
-      );
-    }).toList()..sort((a, b) => b.totalRevenueRupiah.compareTo(a.totalRevenueRupiah));
+        return MenuPerformance(
+          productName: product.name,
+          isActive: product.isActive,
+          completedCount: completedCount,
+          cancelledCount: cancelledCount,
+          totalQuantitySold: quantitySold,
+          totalRevenueRupiah: revenue,
+          totalHppRupiah: hpp,
+        );
+      }).toList()
+      ..sort((a, b) => b.totalRevenueRupiah.compareTo(a.totalRevenueRupiah));
   }
 
   @override
@@ -162,14 +156,18 @@ class AnalyticsRepositoryImpl implements AnalyticsRepository {
 
   @override
   Future<List<IngredientPricePoint>> ingredientPriceTrend() async {
-    final rows = await (_db.select(_db.ingredientPurchases).join([
-          innerJoin(
-            _db.ingredients,
-            _db.ingredients.id.equalsExp(_db.ingredientPurchases.ingredientId),
-          ),
-        ])
-          ..orderBy([OrderingTerm(expression: _db.ingredientPurchases.purchasedAt)]))
-        .get();
+    final rows =
+        await (_db.select(_db.ingredientPurchases).join([
+              innerJoin(
+                _db.ingredients,
+                _db.ingredients.id.equalsExp(
+                  _db.ingredientPurchases.ingredientId,
+                ),
+              ),
+            ])..orderBy([
+              OrderingTerm(expression: _db.ingredientPurchases.purchasedAt),
+            ]))
+            .get();
 
     return rows.map((row) {
       final purchase = row.readTable(_db.ingredientPurchases);

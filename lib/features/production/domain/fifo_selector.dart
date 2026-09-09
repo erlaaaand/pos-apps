@@ -21,7 +21,8 @@ List<int> computeFifoSelection({
     if (!fits) continue;
 
     for (final entry in need.entries) {
-      remainingStock[entry.key] = (remainingStock[entry.key] ?? 0) - entry.value;
+      remainingStock[entry.key] =
+          (remainingStock[entry.key] ?? 0) - entry.value;
     }
     selected.add(detail.order.id);
   }

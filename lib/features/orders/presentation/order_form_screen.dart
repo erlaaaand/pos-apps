@@ -87,6 +87,7 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
               children: [
                 DropdownButtonFormField<int>(
                   initialValue: _productId,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Produk'),
                   items: activeProducts
                       .map(

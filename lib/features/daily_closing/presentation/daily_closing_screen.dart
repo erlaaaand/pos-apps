@@ -66,9 +66,8 @@ class DailyClosingScreen extends ConsumerWidget {
           );
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 
@@ -100,14 +99,13 @@ class DailyClosingScreen extends ConsumerWidget {
     try {
       await ref.read(dailyClosingRepositoryProvider).closeToday();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hari ini sudah ditutup.')),
-      );
-    } catch (error) {
-      if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+      ).showSnackBar(const SnackBar(content: Text('Hari ini sudah ditutup.')));
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 

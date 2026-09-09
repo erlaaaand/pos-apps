@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../data/local/app_database.dart';
 
 extension PoStatusLabel on PoStatus {
@@ -10,10 +11,12 @@ extension PoStatusLabel on PoStatus {
     PoStatus.cooked => 'Selesai Masak',
   };
 
+  /// Semantic mapping: draft = nothing happening yet, open = actively taking
+  /// orders, closed = waiting on the owner to cook, cooked = done, informational.
   Color color(BuildContext context) => switch (this) {
-    PoStatus.draft => Colors.grey,
-    PoStatus.open => Colors.green,
-    PoStatus.closed => Colors.orange,
-    PoStatus.cooked => Colors.blue,
+    PoStatus.draft => AppColors.neutral,
+    PoStatus.open => AppColors.success,
+    PoStatus.closed => AppColors.warning,
+    PoStatus.cooked => AppColors.info,
   };
 }

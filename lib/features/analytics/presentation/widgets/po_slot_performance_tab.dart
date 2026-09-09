@@ -28,7 +28,12 @@ class PoSlotPerformanceTab extends ConsumerWidget {
               ExportButtonsRow(
                 fileNameWithoutExtension: 'performa-slot-po',
                 tableBuilder: () => ReportTable(
-                  headers: const ['Slot PO', 'Produk', 'Qty Terjual', 'Pendapatan (Rp)'],
+                  headers: const [
+                    'Slot PO',
+                    'Produk',
+                    'Qty Terjual',
+                    'Pendapatan (Rp)',
+                  ],
                   rows: rows
                       .map(
                         (row) => [

@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:business_management/data/local/app_database.dart';
-import 'package:business_management/features/backup/data/backup_repository_impl.dart';
-import 'package:business_management/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:dapur_kelaris/data/local/app_database.dart';
+import 'package:dapur_kelaris/features/backup/data/backup_repository_impl.dart';
+import 'package:dapur_kelaris/features/ingredients/data/ingredient_repository_impl.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';

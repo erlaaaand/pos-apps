@@ -55,9 +55,7 @@ class MenuPerformanceTab extends ConsumerWidget {
                 ),
               ),
               if (rows.isEmpty)
-                const Expanded(
-                  child: EmptyState(message: 'Belum ada produk.'),
-                )
+                const Expanded(child: EmptyState(message: 'Belum ada produk.'))
               else
                 Expanded(
                   child: ListView.builder(

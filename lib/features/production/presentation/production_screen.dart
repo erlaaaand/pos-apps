@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/error/app_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../ingredients/presentation/widgets/ingredient_unit_label.dart';
+import '../../ingredients/domain/ingredient_unit_label.dart';
 import '../application/production_providers.dart';
 import '../domain/production_preview.dart';
 import '../domain/session_cost_input.dart';
@@ -38,7 +38,8 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
   }
 
   Future<void> _confirm(ProductionPreview preview) async {
-    final selected = _selectedOrderIds ?? preview.suggestedOrderIdsToCook.toSet();
+    final selected =
+        _selectedOrderIds ?? preview.suggestedOrderIdsToCook.toSet();
     setState(() {
       _isSubmitting = true;
       _submitError = null;
@@ -46,7 +47,9 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
 
     final costAmount = int.tryParse(_costAmountController.text);
     final sessionCosts = <SessionCostInput>[
-      if (_costNameController.text.trim().isNotEmpty && costAmount != null && costAmount > 0)
+      if (_costNameController.text.trim().isNotEmpty &&
+          costAmount != null &&
+          costAmount > 0)
         SessionCostInput(
           name: _costNameController.text.trim(),
           amountRupiah: costAmount,
@@ -136,7 +139,9 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
               for (final detail in preview.waitingOrders)
                 CheckboxListTile(
                   value: selected.contains(detail.order.id),
-                  title: Text('${detail.productName} × ${detail.order.quantity}'),
+                  title: Text(
+                    '${detail.productName} × ${detail.order.quantity}',
+                  ),
                   subtitle: Text(
                     '${detail.order.orderedAt.hour.toString().padLeft(2, '0')}:'
                     '${detail.order.orderedAt.minute.toString().padLeft(2, '0')}'
@@ -165,7 +170,9 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
                   Expanded(
                     child: TextField(
                       controller: _costNameController,
-                      decoration: const InputDecoration(labelText: 'Nama Biaya'),
+                      decoration: const InputDecoration(
+                        labelText: 'Nama Biaya',
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),

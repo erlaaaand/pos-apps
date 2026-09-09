@@ -132,10 +132,9 @@ class PurchaseOrderRepositoryImpl implements PurchaseOrderRepository {
   }
 
   Future<void> _assertTodayNotClosed() async {
-    final closedToday =
-        await (_db.select(_db.dailyClosings)
-              ..where((t) => t.date.equals(dateOnly(DateTime.now()))))
-            .getSingleOrNull();
+    final closedToday = await (_db.select(
+      _db.dailyClosings,
+    )..where((t) => t.date.equals(dateOnly(DateTime.now())))).getSingleOrNull();
     if (closedToday != null) {
       throw const TodayAlreadyClosedException();
     }

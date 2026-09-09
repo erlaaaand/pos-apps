@@ -21,5 +21,8 @@ class DailySummary {
   final int ordersPendingPickupCount;
 
   int get netProfitRupiah =>
-      revenueRupiah - hppRupiah - operationalCostRupiah - projectedWasteCostRupiah;
+      revenueRupiah -
+      hppRupiah -
+      operationalCostRupiah -
+      projectedWasteCostRupiah;
 }

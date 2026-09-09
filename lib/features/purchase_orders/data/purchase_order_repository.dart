@@ -15,7 +15,10 @@ abstract interface class PurchaseOrderRepository {
   /// Creates a PO in `draft` status with its per-product quotas. Throws
   /// [TodayAlreadyClosedException] if today's orders are already closed
   /// (B.5), [EmptyQuotaException] if [quotas] is empty.
-  Future<int> create({required String label, required List<PoQuotaInput> quotas});
+  Future<int> create({
+    required String label,
+    required List<PoQuotaInput> quotas,
+  });
 
   /// draft → open, sets openedAt to now.
   Future<void> open(int purchaseOrderId);

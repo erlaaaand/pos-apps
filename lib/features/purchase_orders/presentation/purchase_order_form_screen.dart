@@ -147,7 +147,10 @@ class _PurchaseOrderFormScreenState
                           flex: 3,
                           child: DropdownButtonFormField<int>(
                             initialValue: row.productId,
-                            decoration: const InputDecoration(labelText: 'Produk'),
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Produk',
+                            ),
                             items: activeProducts
                                 .map(
                                   (product) => DropdownMenuItem(
@@ -167,7 +170,9 @@ class _PurchaseOrderFormScreenState
                           flex: 2,
                           child: TextFormField(
                             controller: row.quantityController,
-                            decoration: const InputDecoration(labelText: 'Kuota'),
+                            decoration: const InputDecoration(
+                              labelText: 'Kuota',
+                            ),
                             keyboardType: TextInputType.number,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,

@@ -12,9 +12,7 @@ class OrderRepositoryImpl implements OrderRepository {
 
   @override
   Stream<List<OrderDetail>> watchByPurchaseOrder(int purchaseOrderId) {
-    return _watchOrders(
-      (t) => t.purchaseOrderId.equals(purchaseOrderId),
-    );
+    return _watchOrders((t) => t.purchaseOrderId.equals(purchaseOrderId));
   }
 
   @override
@@ -29,14 +27,15 @@ class OrderRepositoryImpl implements OrderRepository {
   Stream<List<OrderDetail>> _watchOrders(
     Expression<bool> Function($OrdersTable t) predicate,
   ) {
-    final query = _db.select(_db.orders).join([
-      innerJoin(
-        _db.products,
-        _db.products.id.equalsExp(_db.orders.productId),
-      ),
-    ])
-      ..where(predicate(_db.orders))
-      ..orderBy([OrderingTerm(expression: _db.orders.orderedAt)]);
+    final query =
+        _db.select(_db.orders).join([
+            innerJoin(
+              _db.products,
+              _db.products.id.equalsExp(_db.orders.productId),
+            ),
+          ])
+          ..where(predicate(_db.orders))
+          ..orderBy([OrderingTerm(expression: _db.orders.orderedAt)]);
 
     return query.watch().map(
       (rows) => rows
@@ -69,18 +68,16 @@ class OrderRepositoryImpl implements OrderRepository {
       throw ArgumentError.value(quantity, 'quantity', 'Qty harus lebih dari 0');
     }
 
-    final po =
-        await (_db.select(
-          _db.purchaseOrders,
-        )..where((t) => t.id.equals(purchaseOrderId))).getSingleOrNull();
+    final po = await (_db.select(
+      _db.purchaseOrders,
+    )..where((t) => t.id.equals(purchaseOrderId))).getSingleOrNull();
     if (po == null || po.status != PoStatus.open) {
       throw const PurchaseOrderNotOpenException();
     }
 
-    final product =
-        await (_db.select(
-          _db.products,
-        )..where((t) => t.id.equals(productId))).getSingleOrNull();
+    final product = await (_db.select(
+      _db.products,
+    )..where((t) => t.id.equals(productId))).getSingleOrNull();
     if (product == null || !product.isActive) {
       throw ProductNotActiveException(product?.name ?? 'Produk');
     }

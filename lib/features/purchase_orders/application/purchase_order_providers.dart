@@ -18,11 +18,10 @@ final purchaseOrderListProvider = StreamProvider<List<PurchaseOrderBatch>>((
   return ref.watch(purchaseOrderRepositoryProvider).watchAll();
 });
 
-final purchaseOrderByIdProvider = StreamProvider.family<PurchaseOrderBatch?, int>(
-  (ref, id) {
-    return ref.watch(purchaseOrderRepositoryProvider).watchById(id);
-  },
-);
+final purchaseOrderByIdProvider =
+    StreamProvider.family<PurchaseOrderBatch?, int>((ref, id) {
+      return ref.watch(purchaseOrderRepositoryProvider).watchById(id);
+    });
 
 final poQuotaStatusProvider = StreamProvider.family<List<PoQuotaStatus>, int>((
   ref,
