@@ -1,6 +1,10 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/charts/app_line_chart.dart';
+import '../../../../core/charts/chart_card.dart';
+import '../../../../core/charts/chart_palette.dart';
 import '../../../../core/money/rupiah_formatter.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
@@ -158,68 +162,77 @@ class WeeklyCashFlowTab extends ConsumerWidget {
                   icon: Icons.waterfall_chart_outlined,
                 );
               }
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final formattedDate =
-                      'Minggu ${item.weekStart.day}/${item.weekStart.month}/${item.weekStart.year}';
-                  return Card(
-                    child: ExpansionTile(
-                      title: Text(
-                        formattedDate,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        'Kas Akhir: ${RupiahFormatter.format(item.kasAkhirRupiah)} | Laba: ${RupiahFormatter.format(item.labaRugiRupiah)}',
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            children: [
-                              _CashRow(
-                                label: 'Kas Awal Minggu',
-                                amount: item.kasAwalRupiah,
-                              ),
-                              _CashRow(
-                                label: 'Kas Masuk (Penjualan)',
-                                amount: item.kasMasukRupiah,
-                                isPositive: true,
-                              ),
-                              _CashRow(
-                                label: 'Kas Keluar (Belanja & Operasional)',
-                                amount: item.kasKeluarRupiah,
-                                isNegative: true,
-                              ),
-                              const Divider(),
-                              _CashRow(
-                                label: 'Laba / Rugi Bersih',
-                                amount: item.labaRugiRupiah,
-                                isBold: true,
-                              ),
-                              _CashRow(
-                                label: 'Akumulasi Laba (Modal Terkumpul)',
-                                amount: item.modalTerkumpulRupiah,
-                                isBold: true,
-                              ),
-                              _CashRow(
-                                label: 'Kas Akhir Minggu',
-                                amount: item.kasAkhirRupiah,
-                                isBold: true,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ],
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _CashFlowChart(items: items),
+                  const SizedBox(height: AppSpacing.md),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final formattedDate =
+                          'Minggu ${item.weekStart.day}/${item.weekStart.month}/${item.weekStart.year}';
+                      return Card(
+                        child: ExpansionTile(
+                          title: Text(
+                            formattedDate,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
+                          subtitle: Text(
+                            'Kas Akhir: ${RupiahFormatter.format(item.kasAkhirRupiah)} | Laba: ${RupiahFormatter.format(item.labaRugiRupiah)}',
+                          ),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              child: Column(
+                                children: [
+                                  _CashRow(
+                                    label: 'Kas Awal Minggu',
+                                    amount: item.kasAwalRupiah,
+                                  ),
+                                  _CashRow(
+                                    label: 'Kas Masuk (Penjualan)',
+                                    amount: item.kasMasukRupiah,
+                                    isPositive: true,
+                                  ),
+                                  _CashRow(
+                                    label: 'Kas Keluar (Belanja & Operasional)',
+                                    amount: item.kasKeluarRupiah,
+                                    isNegative: true,
+                                  ),
+                                  const Divider(),
+                                  _CashRow(
+                                    label: 'Laba / Rugi Bersih',
+                                    amount: item.labaRugiRupiah,
+                                    isBold: true,
+                                  ),
+                                  _CashRow(
+                                    label: 'Akumulasi Laba (Modal Terkumpul)',
+                                    amount: item.modalTerkumpulRupiah,
+                                    isBold: true,
+                                  ),
+                                  _CashRow(
+                                    label: 'Kas Akhir Minggu',
+                                    amount: item.kasAkhirRupiah,
+                                    isBold: true,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
+                      );
+                    },
+                  ),
+                ],
               );
             },
           ),
@@ -273,5 +286,73 @@ class _CashRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Kas masuk vs kas keluar tiap minggu.
+///
+/// Keduanya satuan rupiah, jadi sah berbagi satu sumbu — dan justru itu
+/// intinya: jarak antara kedua garis adalah untung atau ruginya minggu itu.
+class _CashFlowChart extends StatelessWidget {
+  const _CashFlowChart({required this.items});
+
+  final List<WeeklyCashFlow> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...items]
+      ..sort((a, b) => a.weekStart.compareTo(b.weekStart));
+
+    if (sorted.length < 2) {
+      return const ChartCard(
+        title: 'Kas Masuk vs Kas Keluar',
+        subtitle: 'Grafik muncul setelah ada minimal dua minggu tercatat.',
+        child: SizedBox.shrink(),
+      );
+    }
+
+    final masuk = ChartPalette.slot(context, 5); // hijau
+    final keluar = ChartPalette.slot(context, 7); // merah
+
+    return ChartCard(
+      title: 'Kas Masuk vs Kas Keluar',
+      subtitle: 'Jarak antara kedua garis adalah untung/rugi minggu itu.',
+      series: [
+        ChartSeriesLabel(name: 'Kas Masuk', color: masuk),
+        ChartSeriesLabel(name: 'Kas Keluar', color: keluar),
+      ],
+      child: AppLineChart(
+        series: [
+          LineSeries(
+            name: 'Kas Masuk',
+            color: masuk,
+            spots: [
+              for (var i = 0; i < sorted.length; i++)
+                FlSpot(i.toDouble(), sorted[i].kasMasukRupiah.toDouble()),
+            ],
+          ),
+          LineSeries(
+            name: 'Kas Keluar',
+            color: keluar,
+            spots: [
+              for (var i = 0; i < sorted.length; i++)
+                FlSpot(i.toDouble(), sorted[i].kasKeluarRupiah.toDouble()),
+            ],
+          ),
+        ],
+        xLabels: [
+          for (final item in sorted)
+            '${item.weekStart.day}/${item.weekStart.month}',
+        ],
+        formatY: _compactRupiah,
+        formatTooltipY: (value) => RupiahFormatter.format(value.round()),
+      ),
+    );
+  }
+
+  static String _compactRupiah(double value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}jt';
+    if (value >= 1000) return '${(value / 1000).round()}rb';
+    return value.round().toString();
   }
 }

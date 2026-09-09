@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/charts/app_bar_chart.dart';
+import '../../../../core/charts/chart_card.dart';
+import '../../../../core/charts/chart_palette.dart';
 import '../../../../core/export/report_table.dart';
 import '../../../../core/money/rupiah_formatter.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -58,24 +61,68 @@ class MenuPerformanceTab extends ConsumerWidget {
                 const Expanded(child: EmptyState(message: 'Belum ada produk.'))
               else
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: rows.length,
-                    itemBuilder: (context, index) {
-                      final row = rows[index];
-                      return Card(
-                        child: ListTile(
-                          title: Text(row.productName),
-                          subtitle: Text(
-                            '${row.isActive ? "Aktif" : "Nonaktif"} · '
-                            '${row.completedCount} selesai · '
-                            '${row.cancelledCount} dibatalkan',
-                          ),
-                          trailing: Text(
-                            'Margin ${RupiahFormatter.format(row.marginRupiah)}',
+                  child: ListView(
+                    children: [
+                      Builder(
+                        builder: (context) {
+                          // Warna melekat pada produk (urut abjad), bukan pada
+                          // peringkatnya, sedangkan batangnya diurutkan dari
+                          // margin terbesar.
+                          final names = rows.map((r) => r.productName).toList()
+                            ..sort();
+                          final colors = ChartPalette.assign(context, names);
+                          final ranked = [...rows]
+                            ..sort(
+                              (a, b) =>
+                                  b.marginRupiah.compareTo(a.marginRupiah),
+                            );
+
+                          return ChartCard(
+                            title: 'Margin per Produk',
+                            subtitle:
+                                'Pendapatan dikurangi HPP, dari yang terbesar.',
+                            height: null,
+                            child: AppBarChart(
+                              data: [
+                                for (final row in ranked)
+                                  BarDatum(
+                                    label: row.productName,
+                                    // Margin minus tidak bisa digambar sebagai
+                                    // panjang batang; nilainya tetap tampil
+                                    // pada label di sampingnya.
+                                    value: row.marginRupiah.toDouble().clamp(
+                                      0,
+                                      double.infinity,
+                                    ),
+                                    color:
+                                        colors[row.productName] ??
+                                        ChartPalette.otherOf(context),
+                                    secondaryText:
+                                        '${row.totalQuantitySold} porsi',
+                                  ),
+                              ],
+                              formatValue: (value) =>
+                                  RupiahFormatter.format(value.round()),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      for (final row in rows)
+                        Card(
+                          child: ListTile(
+                            title: Text(row.productName),
+                            subtitle: Text(
+                              '${row.isActive ? "Aktif" : "Nonaktif"} · '
+                              '${row.completedCount} selesai · '
+                              '${row.cancelledCount} dibatalkan',
+                            ),
+                            trailing: Text(
+                              'Margin ${RupiahFormatter.format(row.marginRupiah)}',
+                            ),
                           ),
                         ),
-                      );
-                    },
+                    ],
                   ),
                 ),
             ],

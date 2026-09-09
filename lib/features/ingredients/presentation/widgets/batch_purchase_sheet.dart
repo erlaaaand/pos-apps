@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/feedback/app_toast.dart';
 import '../../../../core/money/rupiah_formatter.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/app_searchable_dropdown.dart';
 import '../../../../core/widgets/sheet_scaffold.dart';
 import '../../../../data/local/app_database.dart';
 import '../../application/ingredient_providers.dart';
@@ -169,6 +171,10 @@ class _BatchPurchaseSheetState extends ConsumerState<BatchPurchaseSheet> {
             lines: lines,
           );
       if (!mounted) return;
+      AppToast.success(
+        context,
+        'Belanja tersimpan. Stok & harga modal diperbarui.',
+      );
       Navigator.of(context).pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));
@@ -203,11 +209,15 @@ class _BatchPurchaseSheetState extends ConsumerState<BatchPurchaseSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: (_) => setState(_recomputeAllocations),
+              // Rp0 sah — sekantong bahan gratis tetap perlu masuk stok.
               validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) {
-                  return 'Total belanja harus lebih dari 0';
+                final raw = value?.trim() ?? '';
+                if (raw.isEmpty) {
+                  return 'Total belanja wajib diisi (isi 0 kalau gratis)';
                 }
+                final parsed = int.tryParse(raw);
+                if (parsed == null) return 'Total belanja harus berupa angka';
+                if (parsed < 0) return 'Total belanja tidak boleh negatif';
                 return null;
               },
             ),
@@ -330,18 +340,18 @@ class _BatchLineRow extends StatelessWidget {
           children: [
             Expanded(
               flex: 3,
-              child: DropdownButtonFormField<int>(
-                initialValue: line.ingredientId,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Bahan'),
-                items: [
+              child: AppSearchableDropdown<int>(
+                label: 'Bahan',
+                hintText: 'Pilih bahan',
+                searchHint: 'Cari bahan baku...',
+                value: line.ingredientId,
+                options: [
                   for (final ingredient in ingredients)
-                    DropdownMenuItem(
+                    AppDropdownOption(
                       value: ingredient.id,
-                      child: Text(
-                        ingredient.name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      label: ingredient.name,
+                      subtitle: ingredient.unit.label,
+                      keywords: [ingredient.unit.shortLabel],
                     ),
                 ],
                 onChanged: (value) {
@@ -395,11 +405,14 @@ class _BatchLineRow extends StatelessWidget {
             line.allocationEdited = true;
             onChanged();
           },
+          // Satu baris boleh Rp0 walau totalnya tidak — misal bonus yang
+          // ikut dalam satu kantong belanja berbayar.
           validator: (value) {
-            final parsed = int.tryParse(value ?? '');
-            if (parsed == null || parsed <= 0) {
-              return 'Biaya harus lebih dari 0';
-            }
+            final raw = value?.trim() ?? '';
+            if (raw.isEmpty) return 'Biaya wajib diisi';
+            final parsed = int.tryParse(raw);
+            if (parsed == null) return 'Biaya harus berupa angka';
+            if (parsed < 0) return 'Biaya tidak boleh negatif';
             return null;
           },
         ),

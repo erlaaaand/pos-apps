@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/widgets/app_searchable_dropdown.dart';
 import '../../../../data/local/app_database.dart';
 import '../../../ingredients/domain/ingredient_unit_label.dart';
 
@@ -37,12 +38,17 @@ class RecipeItemEditorRow extends StatefulWidget {
     required this.row,
     required this.ingredients,
     required this.onRemove,
+    this.onChanged,
     super.key,
   });
 
   final RecipeItemRowState row;
   final List<Ingredient> ingredients;
   final VoidCallback? onRemove;
+
+  /// Dipanggil tiap baris berubah, supaya form induk bisa menghitung ulang
+  /// estimasi HPP-nya.
+  final VoidCallback? onChanged;
 
   @override
   State<RecipeItemEditorRow> createState() => _RecipeItemEditorRowState();
@@ -75,27 +81,21 @@ class _RecipeItemEditorRowState extends State<RecipeItemEditorRow> {
         // 1. Pemilih Bahan
         Expanded(
           flex: 4,
-          child: DropdownButtonFormField<int>(
-            initialValue: widget.row.ingredientId,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Bahan',
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 12,
-              ),
-            ),
-            items: widget.ingredients
-                .map(
-                  (ingredient) => DropdownMenuItem(
-                    value: ingredient.id,
-                    child: Text(
-                      ingredient.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(),
+          child: AppSearchableDropdown<int>(
+            label: 'Bahan',
+            hintText: 'Pilih bahan',
+            searchHint: 'Cari bahan baku...',
+            isDense: true,
+            value: widget.row.ingredientId,
+            options: [
+              for (final ingredient in widget.ingredients)
+                AppDropdownOption(
+                  value: ingredient.id,
+                  label: ingredient.name,
+                  subtitle: ingredient.unit.label,
+                  keywords: [ingredient.unit.shortLabel],
+                ),
+            ],
             onChanged: (value) {
               setState(() {
                 widget.row.ingredientId = value;
@@ -104,6 +104,7 @@ class _RecipeItemEditorRowState extends State<RecipeItemEditorRow> {
                 );
                 widget.row.customUnit = picked.unit;
               });
+              widget.onChanged?.call();
             },
             validator: (value) => value == null ? 'Pilih bahan' : null,
           ),
@@ -132,6 +133,7 @@ class _RecipeItemEditorRowState extends State<RecipeItemEditorRow> {
               if (parsed == null || parsed <= 0) return '> 0';
               return null;
             },
+            onChanged: (_) => widget.onChanged?.call(),
           ),
         ),
         const SizedBox(width: 6),
@@ -139,31 +141,23 @@ class _RecipeItemEditorRowState extends State<RecipeItemEditorRow> {
         // 3. Dropdown Satuan Takaran Kustom
         Expanded(
           flex: 3,
-          child: DropdownButtonFormField<IngredientUnit>(
-            initialValue: currentUnit,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Satuan',
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 12,
-              ),
-            ),
-            items: IngredientUnit.values
-                .map(
-                  (unit) => DropdownMenuItem(
-                    value: unit,
-                    child: Text(
-                      unit.shortLabel,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(),
+          child: AppSearchableDropdown<IngredientUnit>(
+            label: 'Satuan',
+            searchHint: 'Cari satuan...',
+            isDense: true,
+            value: currentUnit,
+            options: [
+              for (final unit in IngredientUnit.values)
+                AppDropdownOption(
+                  value: unit,
+                  label: unit.shortLabel,
+                  subtitle: unit.label,
+                  keywords: [unit.name],
+                ),
+            ],
             onChanged: (unit) {
-              if (unit != null) {
-                setState(() => widget.row.customUnit = unit);
-              }
+              setState(() => widget.row.customUnit = unit);
+              widget.onChanged?.call();
             },
           ),
         ),

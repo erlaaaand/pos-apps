@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/feedback/app_toast.dart';
 import '../../../../core/money/rupiah_formatter.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/sheet_scaffold.dart';
@@ -88,6 +89,10 @@ class _PurchaseFormSheetState extends ConsumerState<PurchaseFormSheet> {
             purchasedAt: _purchasedAt,
           );
       if (!mounted) return;
+      AppToast.success(
+        context,
+        'Pembelian tercatat. Stok & harga modal diperbarui.',
+      );
       Navigator.of(context).pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));
@@ -147,11 +152,16 @@ class _PurchaseFormSheetState extends ConsumerState<PurchaseFormSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               onChanged: (_) => setState(() {}),
+              // Rp0 sah — bahan gratis (air keran, bonus penjual) tetap perlu
+              // masuk stok. Yang ditolak hanya kosong dan negatif.
               validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) {
-                  return 'Total harga harus lebih dari 0';
+                final raw = value?.trim() ?? '';
+                if (raw.isEmpty) {
+                  return 'Total harga wajib diisi (isi 0 kalau gratis)';
                 }
+                final parsed = int.tryParse(raw);
+                if (parsed == null) return 'Total harga harus berupa angka';
+                if (parsed < 0) return 'Total harga tidak boleh negatif';
                 return null;
               },
             ),

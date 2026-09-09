@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/charts/app_bar_chart.dart';
+import '../../../../core/charts/chart_card.dart';
+import '../../../../core/charts/chart_palette.dart';
 import '../../../../core/export/report_table.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
@@ -43,17 +46,38 @@ class BottleneckTab extends ConsumerWidget {
                 )
               else
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: rows.length,
-                    itemBuilder: (context, index) {
-                      final row = rows[index];
-                      return Card(
-                        child: ListTile(
-                          title: Text(row.ingredientName),
-                          trailing: Text('${row.cancellationCount}×'),
+                  child: ListView(
+                    children: [
+                      ChartCard(
+                        title: 'Bahan Penyebab Pembatalan',
+                        subtitle:
+                            'Berapa kali tiap bahan membuat pesanan batal '
+                            'karena stoknya kurang.',
+                        child: AppBarChart(
+                          data: [
+                            for (final row in rows)
+                              BarDatum(
+                                label: row.ingredientName,
+                                value: row.cancellationCount.toDouble(),
+                                // Satu deret bermakna tunggal ("seberapa
+                                // sering"), jadi semuanya memakai satu rona —
+                                // warna berbeda per batang akan menyiratkan
+                                // kategori yang sebenarnya tidak ada.
+                                color: ChartPalette.slot(context, 7),
+                              ),
+                          ],
+                          formatValue: (value) => '${value.round()}×',
                         ),
-                      );
-                    },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      for (final row in rows)
+                        Card(
+                          child: ListTile(
+                            title: Text(row.ingredientName),
+                            trailing: Text('${row.cancellationCount}×'),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
             ],

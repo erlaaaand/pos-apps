@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/feedback/app_toast.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/app_searchable_dropdown.dart';
 import '../../../../core/widgets/sheet_scaffold.dart';
 import '../../../../data/local/app_database.dart';
 import '../../application/finance_providers.dart';
@@ -68,6 +70,7 @@ class _CapitalEntrySheetState extends ConsumerState<CapitalEntrySheet> {
           );
 
       if (!mounted) return;
+      AppToast.success(context, 'Catatan modal tersimpan.');
       Navigator.of(context).pop();
     } catch (error) {
       if (mounted) {
@@ -90,26 +93,31 @@ class _CapitalEntrySheetState extends ConsumerState<CapitalEntrySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DropdownButtonFormField<CapitalEntryKind>(
-              initialValue: _kind,
-              decoration: const InputDecoration(labelText: 'Jenis Entri'),
-              items: const [
-                DropdownMenuItem(
+            AppSearchableDropdown<CapitalEntryKind>(
+              label: 'Jenis Entri',
+              searchHint: 'Cari jenis entri...',
+              value: _kind,
+              options: const [
+                AppDropdownOption(
                   value: CapitalEntryKind.initial,
-                  child: Text('Modal Masuk / Modal Awal'),
+                  label: 'Modal Masuk / Modal Awal',
+                  subtitle: 'Uang yang masuk sebagai modal usaha',
+                  keywords: ['modal', 'awal', 'masuk'],
                 ),
-                DropdownMenuItem(
+                AppDropdownOption(
                   value: CapitalEntryKind.injection,
-                  child: Text('Suntikan Modal Tambahan'),
+                  label: 'Suntikan Modal Tambahan',
+                  subtitle: 'Tambahan modal di tengah jalan',
+                  keywords: ['suntikan', 'tambahan', 'modal'],
                 ),
-                DropdownMenuItem(
+                AppDropdownOption(
                   value: CapitalEntryKind.equipment,
-                  child: Text('Investasi Alat / Perlengkapan'),
+                  label: 'Investasi Alat / Perlengkapan',
+                  subtitle: 'Pembelian alat yang dipakai berulang',
+                  keywords: ['alat', 'perlengkapan', 'investasi'],
                 ),
               ],
-              onChanged: (val) {
-                if (val != null) setState(() => _kind = val);
-              },
+              onChanged: (val) => setState(() => _kind = val),
             ),
             const SizedBox(height: AppSpacing.md),
             TextFormField(

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/feedback/app_toast.dart';
 import '../../../core/error/app_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -65,6 +66,10 @@ class _ProductionScreenState extends ConsumerState<ProductionScreen> {
             sessionCosts: sessionCosts,
           );
       if (!mounted) return;
+      AppToast.success(
+        context,
+        'Produksi dikonfirmasi. Stok bahan sudah dipotong.',
+      );
       context.pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));

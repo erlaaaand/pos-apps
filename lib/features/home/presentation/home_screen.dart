@@ -16,6 +16,7 @@ import '../../daily_closing/application/daily_closing_providers.dart';
 import '../../ingredients/application/ingredient_providers.dart';
 import '../../products/application/product_providers.dart';
 import '../../purchase_orders/application/purchase_order_providers.dart';
+import '../../settings/presentation/widgets/theme_mode_button.dart';
 
 /// Beranda — mengikuti tata letak referensi: header gradasi hangat yang
 /// meluruh ke warna latar, tiga metrik ringkas, lalu seksi pintasan.
@@ -247,6 +248,8 @@ class _Header extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const Spacer(),
+                    const ThemeModeButton(foregroundColor: Colors.white),
                   ],
                 ),
               ),
@@ -382,12 +385,8 @@ class _StatusPill extends StatelessWidget {
     final bgColor = isClosed
         ? AppColors.surfaceSubtle
         : AppColors.successContainer;
-    final fgColor = isClosed
-        ? AppColors.textSecondary
-        : AppColors.success;
-    final dotColor = isClosed
-        ? AppColors.outline
-        : AppColors.success;
+    final fgColor = isClosed ? AppColors.textSecondary : AppColors.success;
+    final dotColor = isClosed ? AppColors.outline : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -409,10 +408,7 @@ class _StatusPill extends StatelessWidget {
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: dotColor,
-            ),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor),
           ),
           const SizedBox(width: 6),
           Text(

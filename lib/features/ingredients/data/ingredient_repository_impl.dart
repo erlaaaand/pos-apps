@@ -248,7 +248,7 @@ class IngredientRepositoryImpl implements IngredientRepository {
     String? storeName,
     required DateTime purchasedAt,
   }) async {
-    _assertPositiveLine(quantity: quantity, priceRupiah: totalPriceRupiah);
+    _assertValidLine(quantity: quantity, priceRupiah: totalPriceRupiah);
 
     await _db.transaction(() async {
       await _applyPurchase(
@@ -272,15 +272,17 @@ class IngredientRepositoryImpl implements IngredientRepository {
     if (lines.isEmpty) {
       throw const EmptyPurchaseBatchException();
     }
-    if (totalPriceRupiah <= 0) {
+    // Total Rp0 diperbolehkan — satu kantong berisi bahan gratis semuanya
+    // tetap sah dicatat supaya stoknya masuk. Yang ditolak hanya nilai negatif.
+    if (totalPriceRupiah < 0) {
       throw ArgumentError.value(
         totalPriceRupiah,
         'totalPriceRupiah',
-        'Total belanja harus lebih dari 0',
+        'Total belanja tidak boleh negatif',
       );
     }
     for (final line in lines) {
-      _assertPositiveLine(
+      _assertValidLine(
         quantity: line.quantity,
         priceRupiah: line.allocatedPriceRupiah,
       );
@@ -415,18 +417,24 @@ class IngredientRepositoryImpl implements IngredientRepository {
         );
   }
 
-  void _assertPositiveLine({
-    required double quantity,
-    required int priceRupiah,
-  }) {
+  /// Kuantitas wajib positif, harga boleh nol.
+  ///
+  /// Harga Rp0 itu sah: air dari keran, bonus dari penjual, atau bahan titipan
+  /// memang benar-benar tidak berbiaya. Yang tidak pernah masuk akal adalah
+  /// kuantitas nol/negatif (tidak ada barang yang masuk) dan harga negatif
+  /// (itu pengembalian dana, bukan pembelian).
+  ///
+  /// Rata-rata tertimbang di [_applyPurchase] tetap aman: pembaginya
+  /// `currentStock + quantity`, dan `quantity` di sini dijamin > 0.
+  void _assertValidLine({required double quantity, required int priceRupiah}) {
     if (quantity <= 0) {
       throw ArgumentError.value(quantity, 'quantity', 'Qty harus lebih dari 0');
     }
-    if (priceRupiah <= 0) {
+    if (priceRupiah < 0) {
       throw ArgumentError.value(
         priceRupiah,
         'totalPriceRupiah',
-        'Harga harus lebih dari 0',
+        'Harga tidak boleh negatif',
       );
     }
   }

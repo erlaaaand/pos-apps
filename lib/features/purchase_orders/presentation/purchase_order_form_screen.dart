@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/error/app_exception.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_searchable_dropdown.dart';
 import '../../products/application/product_providers.dart';
 import '../application/purchase_order_providers.dart';
 import '../domain/po_quota_input.dart';
@@ -145,24 +146,21 @@ class _PurchaseOrderFormScreenState
                       children: [
                         Expanded(
                           flex: 3,
-                          child: DropdownButtonFormField<int>(
-                            initialValue: row.productId,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Produk',
-                            ),
-                            items: activeProducts
-                                .map(
-                                  (product) => DropdownMenuItem(
-                                    value: product.id,
-                                    child: Text(
-                                      product.name,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) => row.productId = value,
+                          child: AppSearchableDropdown<int>(
+                            label: 'Produk',
+                            hintText: 'Pilih produk',
+                            searchHint: 'Cari produk...',
+                            isDense: true,
+                            value: row.productId,
+                            options: [
+                              for (final product in activeProducts)
+                                AppDropdownOption(
+                                  value: product.id,
+                                  label: product.name,
+                                ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => row.productId = value),
                           ),
                         ),
                         const SizedBox(width: 8),

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/feedback/app_toast.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/export/report_exporter.dart';
 import '../../../../core/export/report_table.dart';
@@ -111,6 +112,7 @@ class _IngredientImportSheetState extends ConsumerState<IngredientImportSheet> {
           .read(ingredientRepositoryProvider)
           .importIngredients(preview.rows);
       if (!mounted) return;
+      AppToast.success(context, '\$inserted bahan baku berhasil diimpor.');
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$inserted bahan baku berhasil diimpor.')),

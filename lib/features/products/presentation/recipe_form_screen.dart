@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/error/app_exception.dart';
+import '../../../core/feedback/app_toast.dart';
+import '../../../core/money/rupiah_formatter.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/local/app_database.dart';
 import '../../ingredients/application/ingredient_providers.dart';
@@ -37,6 +41,7 @@ class RecipeFormScreen extends ConsumerStatefulWidget {
 class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final TextEditingController _priceController;
   final List<RecipeItemRowState> _rows = [];
   bool _isSubmitting = false;
   String? _submitError;
@@ -48,6 +53,12 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     super.initState();
     _nameController = TextEditingController(
       text: widget.args.existingProduct?.name ?? '',
+    );
+    final prefillPrice = widget.args.prefillSellingPriceRupiah;
+    _priceController = TextEditingController(
+      text: (prefillPrice == null || prefillPrice == 0)
+          ? ''
+          : prefillPrice.toString(),
     );
 
     final prefill = widget.args.prefillItems;
@@ -70,6 +81,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _priceController.dispose();
     for (final row in _rows) {
       row.dispose();
     }
@@ -133,25 +145,56 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
     });
 
     final repository = ref.read(recipeRepositoryProvider);
+    final sellingPrice = int.tryParse(_priceController.text.trim()) ?? 0;
     try {
       if (_isNewProduct) {
         await repository.createProduct(
           name: _nameController.text.trim(),
           items: items,
+          sellingPriceRupiah: sellingPrice,
         );
       } else {
         await repository.addRecipeVersion(
           productId: widget.args.existingProduct!.id,
           items: items,
+          sellingPriceRupiah: sellingPrice,
         );
       }
       if (!mounted) return;
+      AppToast.success(
+        context,
+        _isNewProduct ? 'Produk berhasil dibuat.' : 'Resep baru tersimpan.',
+      );
       context.pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Estimasi HPP dari baris yang sedang diisi, memakai harga modal bahan
+  /// yang berlaku sekarang. Dihitung ulang tiap ketikan supaya pemilik
+  /// langsung lihat untung/ruginya sebelum menyimpan.
+  int _estimatedHpp(List<Ingredient> ingredients) {
+    var total = 0.0;
+    for (final row in _rows) {
+      final ingredientId = row.ingredientId;
+      final quantity = double.tryParse(row.quantityController.text);
+      if (ingredientId == null || quantity == null || quantity <= 0) continue;
+
+      final match = ingredients.where((i) => i.id == ingredientId);
+      if (match.isEmpty) continue;
+      final ingredient = match.first;
+
+      final baseQuantity = convertQuantityToBaseUnit(
+        quantity,
+        row.customUnit ?? ingredient.unit,
+        ingredient.unit,
+      );
+      total += baseQuantity * ingredient.currentCostPerUnit;
+    }
+    return total.round();
   }
 
   @override
@@ -212,6 +255,35 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                   ),
                 const SizedBox(height: AppSpacing.md),
 
+                TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Harga Jual per Porsi',
+                    prefixText: 'Rp ',
+                    helperText: 'Harga yang dibayar pembeli untuk 1 porsi.',
+                  ),
+                  keyboardType: TextInputType.number,
+                  // Harga ikut terkunci ke versi resep ini, jadi tiap revisi
+                  // resep memang wajib menyebut harganya sendiri.
+                  validator: (value) {
+                    final raw = value?.trim() ?? '';
+                    if (raw.isEmpty) return 'Harga jual wajib diisi';
+                    final parsed = int.tryParse(raw);
+                    if (parsed == null) return 'Harga jual harus berupa angka';
+                    if (parsed <= 0) return 'Harga jual harus lebih dari 0';
+                    return null;
+                  },
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                _MarginPreview(
+                  sellingPriceRupiah:
+                      int.tryParse(_priceController.text.trim()) ?? 0,
+                  hppRupiah: _estimatedHpp(ingredients),
+                ),
+                const SizedBox(height: AppSpacing.md),
+
                 // Info Banner Perencanaan Takaran per Porsi
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
@@ -249,6 +321,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                   onAdd: () => _addRow(RecipeItemKind.ingredient),
                   onRemove: _removeRow,
                   canRemove: _rows.length > 1,
+                  onChanged: () => setState(() {}),
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
@@ -264,6 +337,7 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
                   onAdd: () => _addRow(RecipeItemKind.packaging),
                   onRemove: _removeRow,
                   canRemove: _rows.length > 1,
+                  onChanged: () => setState(() {}),
                 ),
                 if (_submitError != null) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -294,6 +368,93 @@ class _RecipeFormScreenState extends ConsumerState<RecipeFormScreen> {
   }
 }
 
+/// Ringkasan untung/rugi per porsi sementara resep masih diisi.
+///
+/// Semua angka di sini boleh nol, jadi tiap pembagian dijaga: persentase
+/// margin hanya dihitung kalau harga jual > 0, dan HPP nol dilaporkan sebagai
+/// "belum ada harga modal" — bukan sebagai untung 100%, karena yang terjadi
+/// sebenarnya adalah bahannya belum pernah dibeli.
+class _MarginPreview extends StatelessWidget {
+  const _MarginPreview({
+    required this.sellingPriceRupiah,
+    required this.hppRupiah,
+  });
+
+  final int sellingPriceRupiah;
+  final int hppRupiah;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final margin = sellingPriceRupiah - hppRupiah;
+    final hasPrice = sellingPriceRupiah > 0;
+    final percent = hasPrice ? (margin / sellingPriceRupiah) * 100 : null;
+
+    final (Color tone, String headline, String detail) = switch (null) {
+      _ when hppRupiah == 0 => (
+        AppColors.warning,
+        'HPP belum bisa dihitung',
+        'Bahan pada resep ini belum punya harga modal. Catat pembelian '
+            'bahannya dulu supaya margin akurat.',
+      ),
+      _ when !hasPrice => (
+        AppColors.info,
+        'Isi harga jual',
+        'HPP per porsi ${RupiahFormatter.format(hppRupiah)}. Masukkan harga '
+            'jual untuk melihat marginnya.',
+      ),
+      _ when margin < 0 => (
+        AppColors.danger,
+        'Rugi ${RupiahFormatter.format(margin.abs())} per porsi',
+        'Harga jual di bawah HPP ${RupiahFormatter.format(hppRupiah)}.',
+      ),
+      _ when margin == 0 => (
+        AppColors.warning,
+        'Impas, tanpa untung',
+        'Harga jual persis sama dengan HPP ${RupiahFormatter.format(hppRupiah)}.',
+      ),
+      _ => (
+        AppColors.success,
+        'Untung ${RupiahFormatter.format(margin)} per porsi',
+        'HPP ${RupiahFormatter.format(hppRupiah)} · Margin '
+            '${percent!.toStringAsFixed(1)}%',
+      ),
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: tone.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.calculate_outlined, color: tone, size: 20),
+          const SizedBox(width: AppSpacing.compact),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  headline,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: tone,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(detail, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RecipeSection extends StatelessWidget {
   const _RecipeSection({
     required this.title,
@@ -304,6 +465,7 @@ class _RecipeSection extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.canRemove,
+    required this.onChanged,
   });
 
   final String title;
@@ -314,6 +476,9 @@ class _RecipeSection extends StatelessWidget {
   final VoidCallback onAdd;
   final void Function(RecipeItemRowState row) onRemove;
   final bool canRemove;
+
+  /// Diteruskan ke tiap baris supaya estimasi HPP di atas ikut diperbarui.
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -341,6 +506,7 @@ class _RecipeSection extends StatelessWidget {
               row: row,
               ingredients: ingredients,
               onRemove: canRemove ? () => onRemove(row) : null,
+              onChanged: onChanged,
             ),
           ),
         OutlinedButton.icon(

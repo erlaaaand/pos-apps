@@ -107,7 +107,7 @@ void main() {
       );
     });
 
-    test('rejects zero or negative price', () async {
+    test('rejects a negative price', () async {
       final id = await repository.create(
         name: 'Gula Pasir',
         unit: IngredientUnit.kilogram,
@@ -117,10 +117,58 @@ void main() {
         () => repository.recordPurchase(
           ingredientId: id,
           quantity: 1,
-          totalPriceRupiah: 0,
+          totalPriceRupiah: -1,
           purchasedAt: DateTime(2026, 1, 1),
         ),
         throwsArgumentError,
+      );
+    });
+
+    test('accepts a free purchase and leaves cost per unit at zero', () async {
+      final id = await repository.create(
+        name: 'Air',
+        unit: IngredientUnit.liter,
+      );
+
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 5,
+        totalPriceRupiah: 0,
+        purchasedAt: DateTime(2026, 1, 1),
+      );
+
+      final air = await repository.getById(id);
+      expect(air!.currentStock, 5, reason: 'stok gratis tetap masuk');
+      expect(air.currentCostPerUnit, 0);
+    });
+
+    test('a free purchase dilutes an existing weighted average', () async {
+      final id = await repository.create(
+        name: 'Durian',
+        unit: IngredientUnit.kilogram,
+      );
+
+      // Beli 2 kg seharga Rp20.000 -> Rp10.000/kg.
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 2,
+        totalPriceRupiah: 20000,
+        purchasedAt: DateTime(2026, 1, 1),
+      );
+      // Dapat 2 kg gratis -> total nilai tetap Rp20.000 atas 4 kg.
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 2,
+        totalPriceRupiah: 0,
+        purchasedAt: DateTime(2026, 1, 2),
+      );
+
+      final durian = await repository.getById(id);
+      expect(durian!.currentStock, 4);
+      expect(
+        durian.currentCostPerUnit,
+        closeTo(5000, 0.001),
+        reason: 'Rp20.000 dibagi 4 kg, bukan dibagi 2 kg',
       );
     });
 

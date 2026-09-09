@@ -5,6 +5,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'tables/app_settings_table.dart';
 import 'tables/backup_logs_table.dart';
 import 'tables/capital_entries_table.dart';
 import 'tables/daily_closings_table.dart';
@@ -26,6 +27,7 @@ import 'tables/recipes_table.dart';
 
 // Re-exported so feature code can import just this file to get the database,
 // generated row classes, and the enums used in table definitions.
+export 'tables/app_settings_table.dart';
 export 'tables/backup_logs_table.dart';
 export 'tables/capital_entries_table.dart';
 export 'tables/daily_closings_table.dart';
@@ -71,6 +73,7 @@ Future<File> resolveDatabaseFile() async {
 /// catatan modal, serta pemisahan bahan/kemasan pada baris resep.
 @DriftDatabase(
   tables: [
+    AppSettings,
     IngredientCategories,
     Ingredients,
     PurchaseBatches,
@@ -95,7 +98,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -114,6 +117,11 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(ingredients, ingredients.categoryId);
         await m.addColumn(ingredientPurchases, ingredientPurchases.batchId);
         await m.addColumn(recipeItems, recipeItems.kind);
+      }
+      if (from < 3) {
+        // Preferensi tampilan (mode terang/gelap). Tabel kosong berarti
+        // "ikut setelan HP", jadi tidak ada backfill yang perlu dilakukan.
+        await m.createTable(appSettings);
       }
     },
     beforeOpen: (details) async {

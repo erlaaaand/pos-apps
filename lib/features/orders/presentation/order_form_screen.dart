@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/error/app_exception.dart';
+import '../../../core/money/rupiah_formatter.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/app_searchable_dropdown.dart';
 import '../../products/application/product_providers.dart';
 import '../application/order_providers.dart';
 
@@ -85,21 +87,21 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
             child: ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [
-                DropdownButtonFormField<int>(
-                  initialValue: _productId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Produk'),
-                  items: activeProducts
-                      .map(
-                        (entry) => DropdownMenuItem(
-                          value: entry.product.id,
-                          child: Text(
-                            '${entry.product.name} · Rp${entry.recipe.sellingPriceRupiah}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                AppSearchableDropdown<int>(
+                  label: 'Produk',
+                  hintText: 'Pilih produk',
+                  searchHint: 'Cari produk...',
+                  value: _productId,
+                  options: [
+                    for (final entry in activeProducts)
+                      AppDropdownOption(
+                        value: entry.product.id,
+                        label: entry.product.name,
+                        subtitle: RupiahFormatter.format(
+                          entry.recipe.sellingPriceRupiah,
                         ),
-                      )
-                      .toList(),
+                      ),
+                  ],
                   onChanged: (value) => setState(() => _productId = value),
                   validator: (value) => value == null ? 'Pilih produk' : null,
                 ),

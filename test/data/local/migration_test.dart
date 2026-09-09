@@ -195,15 +195,37 @@ void main() {
     expect(await db.select(db.capitalEntries).get(), hasLength(1));
   });
 
-  test('a fresh database is created directly at v2', () async {
+  test('a fresh database is created directly at the newest version', () async {
     final db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(db.close);
 
     expect(await db.select(db.ingredients).get(), isEmpty);
     expect(await db.select(db.capitalEntries).get(), isEmpty);
 
-    // Semua tabel v2 harus ada, bukan cuma yang disentuh migrasi.
+    // Semua tabel harus ada, bukan cuma yang disentuh migrasi.
     expect(await db.select(db.orders).get(), isEmpty);
     expect(await db.select(db.dailyClosings).get(), isEmpty);
+    expect(await db.select(db.appSettings).get(), isEmpty);
+  });
+
+  test('v1 database reaches v3 in one open, settings table included', () async {
+    createV1DatabaseWithData();
+
+    final db = AppDatabase(NativeDatabase(dbFile));
+    addTearDown(db.close);
+
+    // Melompat dua versi sekaligus: v1 -> v2 -> v3 harus jalan berurutan.
+    expect(await db.select(db.appSettings).get(), isEmpty);
+
+    await db
+        .into(db.appSettings)
+        .insert(AppSettingsCompanion.insert(key: 'theme_mode', value: 'dark'));
+
+    final saved = await db.select(db.appSettings).getSingle();
+    expect(saved.value, 'dark');
+
+    // Data v1 tetap utuh setelah dua langkah migrasi.
+    expect(await db.select(db.ingredients).get(), hasLength(1));
+    expect(await db.select(db.products).get(), hasLength(1));
   });
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/feedback/app_toast.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/app_searchable_dropdown.dart';
 import '../../../../core/widgets/sheet_scaffold.dart';
 import '../../../../data/local/app_database.dart';
 import '../../application/ingredient_providers.dart';
@@ -82,6 +84,10 @@ class _IngredientFormSheetState extends ConsumerState<IngredientFormSheet> {
         );
       }
       if (!mounted) return;
+      AppToast.success(
+        context,
+        _isEditing ? 'Bahan baku diperbarui.' : 'Bahan baku ditambahkan.',
+      );
       Navigator.of(context).pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));
@@ -131,14 +137,12 @@ class _IngredientFormSheetState extends ConsumerState<IngredientFormSheet> {
                   : null,
             ),
             const SizedBox(height: AppSpacing.md),
-            DropdownButtonFormField<IngredientUnit>(
-              initialValue: _unit,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Satuan'),
-              items: _unitItems(context),
-              onChanged: (value) {
-                if (value != null) setState(() => _unit = value);
-              },
+            AppSearchableDropdown<IngredientUnit>(
+              label: 'Satuan',
+              searchHint: 'Cari satuan (mis. gram, sdm, cup)...',
+              value: _unit,
+              options: _unitOptions(),
+              onChanged: (value) => setState(() => _unit = value),
             ),
             const SizedBox(height: AppSpacing.md),
             categories.when(
@@ -147,20 +151,20 @@ class _IngredientFormSheetState extends ConsumerState<IngredientFormSheet> {
               data: (items) => Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<int?>(
-                      initialValue: _categoryId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Kategori (opsional)',
-                      ),
-                      items: [
-                        const DropdownMenuItem<int?>(
-                          child: Text('Tanpa kategori'),
+                    child: AppSearchableDropdown<int?>(
+                      label: 'Kategori (opsional)',
+                      searchHint: 'Cari kategori...',
+                      value: _categoryId,
+                      options: [
+                        const AppDropdownOption<int?>(
+                          value: null,
+                          label: 'Tanpa kategori',
+                          keywords: ['kosong', 'none'],
                         ),
                         for (final category in items)
-                          DropdownMenuItem<int?>(
+                          AppDropdownOption<int?>(
                             value: category.id,
-                            child: Text(category.name),
+                            label: category.name,
                           ),
                       ],
                       onChanged: (value) => setState(() => _categoryId = value),
@@ -199,24 +203,21 @@ class _IngredientFormSheetState extends ConsumerState<IngredientFormSheet> {
     );
   }
 
-  /// 18 satuan dikelompokkan dengan judul non-pilihan supaya daftarnya tidak
-  /// terbaca sebagai satu tumpukan panjang.
-  List<DropdownMenuItem<IngredientUnit>> _unitItems(BuildContext context) {
-    final headerStyle = Theme.of(context).textTheme.labelSmall
-        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
-
+  /// 18 satuan, masing-masing membawa nama kelompoknya sebagai subjudul.
+  ///
+  /// Judul kelompok tidak lagi jadi baris terpisah seperti pada dropdown lama:
+  /// dengan kolom pencarian, nama kelompok justru lebih berguna sebagai kata
+  /// kunci — mengetik "takaran" memunculkan sdt/sdm/gelas sekaligus.
+  List<AppDropdownOption<IngredientUnit>> _unitOptions() {
     return [
-      for (final group in IngredientUnitGroup.values) ...[
-        DropdownMenuItem<IngredientUnit>(
-          enabled: false,
-          child: Text(group.label.toUpperCase(), style: headerStyle),
-        ),
+      for (final group in IngredientUnitGroup.values)
         for (final unit in group.units)
-          DropdownMenuItem<IngredientUnit>(
+          AppDropdownOption(
             value: unit,
-            child: Text(unit.label),
+            label: unit.label,
+            subtitle: group.label,
+            keywords: [unit.shortLabel, unit.name, group.label],
           ),
-      ],
     ];
   }
 }
