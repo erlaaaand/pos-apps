@@ -1,29 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
-import '../../../core/error/app_exception.dart';
-import '../../../core/money/rupiah_formatter.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../data/local/app_database.dart';
-import '../application/ingredient_providers.dart';
-import 'widgets/ingredient_unit_label.dart';
+import '../../../../core/error/app_exception.dart';
+import '../../../../core/money/rupiah_formatter.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/sheet_scaffold.dart';
+import '../../../../data/local/app_database.dart';
+import '../../application/ingredient_providers.dart';
+import '../../domain/ingredient_unit_label.dart';
+
+/// Catat pembelian satu bahan sebagai bottom sheet (update.md:14).
+Future<void> showPurchaseFormSheet(
+  BuildContext context, {
+  required Ingredient ingredient,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => PurchaseFormSheet(ingredient: ingredient),
+  );
+}
 
 /// Records a purchase for [ingredient] (A.2). Stock and weighted-average
 /// cost are recalculated automatically by the repository on submit — this
-/// screen never edits them directly.
-class PurchaseFormScreen extends ConsumerStatefulWidget {
-  const PurchaseFormScreen({required this.ingredient, super.key});
+/// sheet never edits them directly.
+class PurchaseFormSheet extends ConsumerStatefulWidget {
+  const PurchaseFormSheet({required this.ingredient, super.key});
 
   final Ingredient ingredient;
 
   @override
-  ConsumerState<PurchaseFormScreen> createState() =>
-      _PurchaseFormScreenState();
+  ConsumerState<PurchaseFormSheet> createState() => _PurchaseFormSheetState();
 }
 
-class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
+class _PurchaseFormSheetState extends ConsumerState<PurchaseFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _totalPriceController = TextEditingController();
@@ -74,7 +88,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
             purchasedAt: _purchasedAt,
           );
       if (!mounted) return;
-      context.pop();
+      Navigator.of(context).pop();
     } catch (error) {
       setState(() => _submitError = friendlyErrorMessage(error));
     } finally {
@@ -86,19 +100,25 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
   Widget build(BuildContext context) {
     final quantity = _quantity;
     final totalPrice = _totalPrice;
-    final perUnitPreview = (quantity != null && quantity > 0 && totalPrice != null)
+    final perUnitPreview =
+        (quantity != null && quantity > 0 && totalPrice != null)
         ? totalPrice / quantity
         : null;
+    final dateFormat = DateFormat('d MMM yyyy', 'id_ID');
+    final timeFormat = DateFormat('HH:mm', 'id_ID');
 
-    return Scaffold(
-      appBar: AppBar(title: Text('Catat Pembelian: ${widget.ingredient.name}')),
-      body: Form(
+    return SheetScaffold(
+      title: 'Catat Pembelian',
+      subtitle: widget.ingredient.name,
+      child: Form(
         key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextFormField(
               controller: _quantityController,
+              autofocus: true,
               decoration: InputDecoration(
                 labelText: 'Qty Dibeli (${widget.ingredient.unit.shortLabel})',
               ),
@@ -121,7 +141,7 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
             TextFormField(
               controller: _totalPriceController,
               decoration: const InputDecoration(
-                labelText: 'Total Harga (Rp)',
+                labelText: 'Total Harga',
                 prefixText: 'Rp ',
               ),
               keyboardType: TextInputType.number,
@@ -151,12 +171,12 @@ class _PurchaseFormScreenState extends ConsumerState<PurchaseFormScreen> {
               ),
               textCapitalization: TextCapitalization.words,
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.sm),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Tanggal Beli'),
               subtitle: Text(
-                '${_purchasedAt.day}/${_purchasedAt.month}/${_purchasedAt.year}',
+                '${dateFormat.format(_purchasedAt)} pukul ${timeFormat.format(_purchasedAt)}',
               ),
               trailing: const Icon(Icons.calendar_today_outlined),
               onTap: _pickDate,

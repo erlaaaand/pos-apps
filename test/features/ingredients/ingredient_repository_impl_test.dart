@@ -1,6 +1,6 @@
-import 'package:business_management/data/local/app_database.dart';
-import 'package:business_management/features/ingredients/data/ingredient_repository_impl.dart';
-import 'package:business_management/features/ingredients/domain/ingredient_exceptions.dart';
+import 'package:dapur_kelaris/data/local/app_database.dart';
+import 'package:dapur_kelaris/features/ingredients/data/ingredient_repository_impl.dart';
+import 'package:dapur_kelaris/features/ingredients/domain/ingredient_exceptions.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,56 +45,50 @@ void main() {
   });
 
   group('recordPurchase', () {
-    test(
-      'sets cost per unit from the first purchase (erp.md A.1)',
-      () async {
-        final id = await repository.create(
-          name: 'Gula Pasir',
-          unit: IngredientUnit.kilogram,
-        );
+    test('sets cost per unit from the first purchase (erp.md A.1)', () async {
+      final id = await repository.create(
+        name: 'Gula Pasir',
+        unit: IngredientUnit.kilogram,
+      );
 
-        await repository.recordPurchase(
-          ingredientId: id,
-          quantity: 2,
-          totalPriceRupiah: 30000,
-          purchasedAt: DateTime(2026, 1, 1),
-        );
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 2,
+        totalPriceRupiah: 30000,
+        purchasedAt: DateTime(2026, 1, 1),
+      );
 
-        final ingredient = await repository.getById(id);
-        expect(ingredient!.currentStock, 2);
-        expect(ingredient.currentCostPerUnit, 15000);
-      },
-    );
+      final ingredient = await repository.getById(id);
+      expect(ingredient!.currentStock, 2);
+      expect(ingredient.currentCostPerUnit, 15000);
+    });
 
-    test(
-      'recalculates cost as a weighted average across purchases (erp.md A.2 formula)',
-      () async {
-        final id = await repository.create(
-          name: 'Gula Pasir',
-          unit: IngredientUnit.kilogram,
-        );
+    test('recalculates cost as a weighted average across purchases (erp.md A.2 formula)', () async {
+      final id = await repository.create(
+        name: 'Gula Pasir',
+        unit: IngredientUnit.kilogram,
+      );
 
-        // stok_lama=2, harga_lama=15000 -> nilai lama 30000
-        await repository.recordPurchase(
-          ingredientId: id,
-          quantity: 2,
-          totalPriceRupiah: 30000,
-          purchasedAt: DateTime(2026, 1, 1),
-        );
+      // stok_lama=2, harga_lama=15000 -> nilai lama 30000
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 2,
+        totalPriceRupiah: 30000,
+        purchasedAt: DateTime(2026, 1, 1),
+      );
 
-        // beli 3kg seharga 60000 (20000/kg) -> (30000+60000)/(2+3) = 18000
-        await repository.recordPurchase(
-          ingredientId: id,
-          quantity: 3,
-          totalPriceRupiah: 60000,
-          purchasedAt: DateTime(2026, 1, 2),
-        );
+      // beli 3kg seharga 60000 (20000/kg) -> (30000+60000)/(2+3) = 18000
+      await repository.recordPurchase(
+        ingredientId: id,
+        quantity: 3,
+        totalPriceRupiah: 60000,
+        purchasedAt: DateTime(2026, 1, 2),
+      );
 
-        final ingredient = await repository.getById(id);
-        expect(ingredient!.currentStock, 5);
-        expect(ingredient.currentCostPerUnit, 18000);
-      },
-    );
+      final ingredient = await repository.getById(id);
+      expect(ingredient!.currentStock, 5);
+      expect(ingredient.currentCostPerUnit, 18000);
+    });
 
     test('rejects zero or negative quantity', () async {
       final id = await repository.create(

@@ -42,3 +42,62 @@ class DuplicateIngredientNameException implements AppException {
   @override
   String toString() => message;
 }
+
+/// Thrown when a purchase batch is submitted with no ingredient lines.
+class EmptyPurchaseBatchException implements AppException {
+  const EmptyPurchaseBatchException();
+
+  @override
+  String get message => 'Belanja harus berisi minimal 1 bahan.';
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the per-ingredient cost split does not add up to the amount
+/// actually paid — letting this through would corrupt every affected
+/// ingredient's weighted-average cost.
+class BatchAllocationMismatchException implements AppException {
+  const BatchAllocationMismatchException({
+    required this.expectedRupiah,
+    required this.actualRupiah,
+  });
+
+  final int expectedRupiah;
+  final int actualRupiah;
+
+  @override
+  String get message =>
+      'Pembagian biaya belum pas: total alokasi Rp$actualRupiah, '
+      'sedangkan yang dibayar Rp$expectedRupiah.';
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when creating an ingredient category whose name already exists.
+class DuplicateIngredientCategoryException implements AppException {
+  const DuplicateIngredientCategoryException(this.name);
+
+  final String name;
+
+  @override
+  String get message => 'Kategori "$name" sudah ada.';
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when an ingredient category still has ingredients attached to it.
+class IngredientCategoryInUseException implements AppException {
+  const IngredientCategoryInUseException(this.categoryId);
+
+  final int categoryId;
+
+  @override
+  String get message =>
+      'Kategori ini masih dipakai bahan baku, jadi belum bisa dihapus.';
+
+  @override
+  String toString() => message;
+}
