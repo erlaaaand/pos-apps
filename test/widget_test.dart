@@ -1,6 +1,6 @@
-import 'package:business_management/app/app.dart';
-import 'package:business_management/data/local/app_database.dart';
-import 'package:business_management/data/local/database_provider.dart';
+import 'package:dapur_kelaris/app/app.dart';
+import 'package:dapur_kelaris/data/local/app_database.dart';
+import 'package:dapur_kelaris/data/local/database_provider.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +28,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Business Management'), findsOneWidget);
+    // Header Beranda menampilkan brand sebagai baris kapital kecil di atas
+    // judul layar (mengikuti reference_theme/design.html).
+    expect(find.text('DAPUR KELARIS'), findsOneWidget);
+    expect(find.text('Beranda Bisnis'), findsOneWidget);
     // NavigationBar renders each destination label in both its selected and
     // unselected animation layers, so these match twice even though only
     // one of each is visible at a time.

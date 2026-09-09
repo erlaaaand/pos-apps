@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/local/app_database.dart';
 import '../features/analytics/presentation/analytics_screen.dart';
 import '../features/backup/presentation/backup_screen.dart';
 import '../features/daily_closing/presentation/daily_closing_screen.dart';
+import '../features/finance/presentation/finance_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/ingredients/presentation/ingredient_detail_screen.dart';
-import '../features/ingredients/presentation/ingredient_form_screen.dart';
 import '../features/ingredients/presentation/ingredient_list_screen.dart';
-import '../features/ingredients/presentation/purchase_form_screen.dart';
 import '../features/orders/presentation/order_form_screen.dart';
 import '../features/production/presentation/production_screen.dart';
 import '../features/products/presentation/product_detail_screen.dart';
@@ -77,29 +75,15 @@ final appRouter = GoRouter(
               path: '/ingredients',
               builder: (context, state) => const IngredientListScreen(),
               routes: [
-                GoRoute(
-                  path: 'new',
-                  builder: (context, state) => const IngredientFormScreen(),
-                ),
+                // Tambah/ubah bahan dan catat pembelian sekarang berupa
+                // bottom sheet (update.md), jadi tidak lagi punya rute
+                // sendiri — sekaligus menghilangkan cast `state.extra`
+                // yang dulu bisa gagal kalau rutenya dibuka lewat deep link.
                 GoRoute(
                   path: ':id',
                   builder: (context, state) => IngredientDetailScreen(
                     ingredientId: int.parse(state.pathParameters['id']!),
                   ),
-                  routes: [
-                    GoRoute(
-                      path: 'edit',
-                      builder: (context, state) => IngredientFormScreen(
-                        editing: state.extra as Ingredient,
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'purchases/new',
-                      builder: (context, state) => PurchaseFormScreen(
-                        ingredient: state.extra as Ingredient,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -123,9 +107,8 @@ final appRouter = GoRouter(
                   routes: [
                     GoRoute(
                       path: 'new-recipe',
-                      builder: (context, state) => RecipeFormScreen(
-                        args: state.extra as RecipeFormArgs,
-                      ),
+                      builder: (context, state) =>
+                          RecipeFormScreen(args: state.extra as RecipeFormArgs),
                     ),
                   ],
                 ),
@@ -149,6 +132,11 @@ final appRouter = GoRouter(
       path: '/backup',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const BackupScreen(),
+    ),
+    GoRoute(
+      path: '/finance',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const FinanceScreen(),
     ),
   ],
 );
